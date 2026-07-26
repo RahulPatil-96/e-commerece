@@ -1,0 +1,89 @@
+import { Link } from 'react-router-dom';
+import { ArrowRight, Recycle, Heart, Award } from 'lucide-react';
+import { Image } from '@/components/ui/image';
+import PageMeta from '@/components/PageMeta';
+
+export default function About() {
+  const values = [
+    { icon: Recycle, title: 'Sustainability First', desc: 'FSC-certified paper, soy-based inks, and plastic-free packaging on every order.' },
+    { icon: Heart, title: 'Crafted by Hand', desc: 'Each notebook is hand-stitched and quality-checked in our Bengaluru studio.' },
+    { icon: Award, title: 'Built to Last', desc: 'We design for longevity — durable bindings, premium paper, timeless aesthetics.' },
+  ];
+
+  const stats = [
+    { num: '2019', label: 'Founded in Bengaluru' },
+    { num: '12k+', label: 'Customers served' },
+    { num: '500+', label: 'B2B partners' },
+    { num: '100%', label: 'Recyclable packaging' },
+  ];
+
+  return (
+    <div>
+      <PageMeta title="About" description="Learn about Lekha’s craftsmanship, sustainability values, and design philosophy." />
+      {/* Hero */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="space-y-5">
+            <span className="text-xs font-medium uppercase tracking-widest text-accent">Our Story</span>
+            <h1 className="font-display text-5xl md:text-6xl font-medium leading-[1.05] text-balance">
+              Tools for<br />thoughtful<br /><span className="italic text-accent">work.</span>
+            </h1>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              Lekha started with a simple frustration: beautiful stationery was either too expensive or poorly made. So we made our own.
+            </p>
+            <p className="text-muted-foreground leading-relaxed">
+              From a tiny studio in Indiranagar to thousands of desks across India, we've stayed true to one belief — the things you write with should make you want to write more.
+            </p>
+          </div>
+          <div className="aspect-[4/5] rounded-sm overflow-hidden bg-secondary">
+            <Image src="https://images.unsplash.com/photo-1517842645767-c639042777db?w=700&q=80" alt="Studio" className="w-full h-full object-cover" fittingType="fill" />
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="bg-primary text-primary-foreground py-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {stats.map((s, i) => (
+              <div key={i}>
+                <p className="font-display text-4xl md:text-5xl font-medium text-accent">{s.num}</p>
+                <p className="text-sm text-primary-foreground/70 mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+        <div className="text-center max-w-xl mx-auto mb-14">
+          <span className="text-xs font-medium uppercase tracking-widest text-accent">What we stand for</span>
+          <h2 className="font-display text-4xl md:text-5xl font-medium mt-3">Our values</h2>
+        </div>
+        <div className="grid md:grid-cols-3 gap-6">
+          {values.map((v, i) => (
+            <div key={i} className="bg-card border border-border rounded-sm p-8 space-y-4">
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                <v.icon className="w-6 h-6 text-accent" />
+              </div>
+              <h3 className="font-display text-xl font-medium">{v.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{v.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 md:pb-28">
+        <div className="bg-card border border-border rounded-sm p-10 md:p-16 text-center">
+          <h2 className="font-display text-3xl md:text-4xl font-medium mb-4">Ready to find your perfect notebook?</h2>
+          <p className="text-muted-foreground mb-8 max-w-md mx-auto">Explore our full collection of thoughtfully crafted stationery.</p>
+          <Link to="/shop" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-7 py-3.5 rounded-full text-sm font-medium hover:bg-accent transition-colors group">
+            Shop Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
