@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { query, isDbConnected, getMemoryStore } from '../db.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
@@ -9,6 +10,12 @@ router.use(authenticateToken);
 
 const roleSchema = z.object({
   role: z.enum(['user', 'admin']),
+});
+
+const createUserSchema = z.object({
+  email: z.string().email('Valid email is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  role: z.enum(['user', 'admin']).optional(),
 });
 
 // GET /api/users — list all users (admin only)
@@ -27,6 +34,49 @@ router.get('/', requireAdmin, async (req, res) => {
   } catch (error) {
     logger.error('Fetch users error:', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
+
+// POST /api/users — create a new user (admin only)
+router.post('/', requireAdmin, async (req, res) => {
+  try {
+    const { email, password, role } = createUserSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+    const userRole = role || 'user';
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    if (isDbConnected()) {
+      const existing = await query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+      if (existing.rows.length > 0) {
+        return res.status(400).json({ message: 'A user with this email already exists' });
+      }
+
+      const result = await query(
+        'INSERT INTO users (email, password_hash, role, is_verified) VALUES ($1, $2, $3, TRUE) RETURNING id, email, role, is_verified, created_at',
+        [normalizedEmail, passwordHash, userRole]
+      );
+      return res.json(result.rows[0]);
+    }
+
+    const memory = getMemoryStore();
+    if (memory.users.some((u) => u.email === normalizedEmail)) {
+      return res.status(400).json({ message: 'A user with this email already exists' });
+    }
+
+    const newUser = {
+      id: memory.users.length + 1,
+      email: normalizedEmail,
+      password_hash: passwordHash,
+      role: userRole,
+      is_verified: true,
+      created_at: new Date().toISOString(),
+    };
+    memory.users.push(newUser);
+    const { password_hash, ...safeUser } = newUser;
+    return res.json(safeUser);
+  } catch (error) {
+    logger.error('Create user error:', { error: error.message, stack: error.stack });
+    res.status(400).json({ message: error.message || 'Failed to create user' });
   }
 });
 

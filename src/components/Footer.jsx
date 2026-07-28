@@ -31,7 +31,6 @@ export default function Footer() {
               <li><Link to="/about" className="text-primary-foreground/80 hover:text-accent transition-colors">About Us</Link></li>
               <li><Link to="/b2b" className="text-primary-foreground/80 hover:text-accent transition-colors">Wholesale / B2B</Link></li>
               <li><Link to="/about" className="text-primary-foreground/80 hover:text-accent transition-colors">Sustainability</Link></li>
-              <li><Link to="/admin" className="text-primary-foreground/80 hover:text-accent transition-colors">Admin Dashboard</Link></li>
               <li><a href="mailto:hello@arihant.co" className="text-primary-foreground/80 hover:text-accent transition-colors">Contact</a></li>
             </ul>
           </div>

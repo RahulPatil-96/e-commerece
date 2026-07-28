@@ -29,7 +29,8 @@ export default function ProductManager() {
   const fetchProducts = () => {
     setLoading(true);
     apiClient.entities.Product.list('-created_date', 200)
-      .then(setProducts)
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   };
 

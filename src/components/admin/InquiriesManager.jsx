@@ -19,7 +19,10 @@ export default function InquiriesManager() {
 
   const fetch = () => {
     setLoading(true);
-    apiClient.entities.B2BInquiry.list('-created_date', 200).then(setInquiries).finally(() => setLoading(false));
+    apiClient.entities.B2BInquiry.list('-created_date', 200)
+      .then((data) => setInquiries(Array.isArray(data) ? data : []))
+      .catch(() => setInquiries([]))
+      .finally(() => setLoading(false));
   };
 
   useEffect(fetch, []);

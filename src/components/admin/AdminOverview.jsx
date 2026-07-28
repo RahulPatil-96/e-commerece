@@ -12,14 +12,18 @@ export default function AdminOverview({ onNavigate }) {
       apiClient.entities.Order.list('-created_date', 5),
       apiClient.entities.B2BInquiry.filter({ status: 'new' }),
     ]).then(([products, orders, inquiries]) => {
+      const prodList = Array.isArray(products) ? products : [];
+      const ordList = Array.isArray(orders) ? orders : [];
+      const inqList = Array.isArray(inquiries) ? inquiries : [];
       setStats({
-        products: products.length,
-        orders: orders.length,
-        inquiries: inquiries.length,
-        lowStock: products.filter(p => (p.stock || 0) < 50).sort((a, b) => (a.stock || 0) - (b.stock || 0)).slice(0, 5),
-        recentOrders: orders,
-        allProducts: products,
+        products: prodList.length,
+        orders: ordList.length,
+        inquiries: inqList.length,
+        lowStock: prodList.filter(p => (p.stock || 0) < 50).sort((a, b) => (a.stock || 0) - (b.stock || 0)).slice(0, 5),
+        recentOrders: ordList,
       });
+    }).catch(() => {
+      setStats({ products: 0, orders: 0, inquiries: 0, lowStock: [], recentOrders: [] });
     }).finally(() => setLoading(false));
   }, []);
 

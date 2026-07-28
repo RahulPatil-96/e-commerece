@@ -178,7 +178,13 @@ export const apiClient = {
   entities: {
     Category: {
       list: async () => {
-        return request('/categories');
+        try {
+          const res = await request('/categories');
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: Category.list failed', err);
+          return [];
+        }
       },
 
       create: async (/** @type {JsonObject} */ data) => {
@@ -204,24 +210,34 @@ export const apiClient = {
 
     Product: {
       list: async (sort = '-created_date', limit = 200) => {
-        const queryParams = new URLSearchParams();
-        if (sort) queryParams.set('sort', sort);
-        if (limit) queryParams.set('limit', limit.toString());
-        const data = await request(`/products?${queryParams.toString()}`);
-        // The API returns { products: [...], pagination: {...} }, unwrap for consumers
-        return Array.isArray(data) ? data : (data?.products || []);
+        try {
+          const queryParams = new URLSearchParams();
+          if (sort) queryParams.set('sort', sort);
+          if (limit) queryParams.set('limit', limit.toString());
+          const data = await request(`/products?${queryParams.toString()}`);
+          // The API returns { products: [...], pagination: {...} }, unwrap for consumers
+          return Array.isArray(data) ? data : (data?.products || []);
+        } catch (err) {
+          console.warn('apiClient: Product.list failed', err);
+          return [];
+        }
       },
 
       filter: async (params = {}, sort = '-created_date', limit = 200) => {
-        const queryParams = new URLSearchParams();
-        Object.entries(params).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== '') queryParams.set(k, v);
-        });
-        if (sort) queryParams.set('sort', sort);
-        if (limit) queryParams.set('limit', limit.toString());
-        const data = await request(`/products?${queryParams.toString()}`);
-        // The API returns { products: [...], pagination: {...} }, unwrap for consumers
-        return Array.isArray(data) ? data : (data?.products || []);
+        try {
+          const queryParams = new URLSearchParams();
+          Object.entries(params).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') queryParams.set(k, v);
+          });
+          if (sort) queryParams.set('sort', sort);
+          if (limit) queryParams.set('limit', limit.toString());
+          const data = await request(`/products?${queryParams.toString()}`);
+          // The API returns { products: [...], pagination: {...} }, unwrap for consumers
+          return Array.isArray(data) ? data : (data?.products || []);
+        } catch (err) {
+          console.warn('apiClient: Product.filter failed', err);
+          return [];
+        }
       },
 
       get: async (/** @type {string | number} */ id) => {
@@ -251,7 +267,13 @@ export const apiClient = {
 
     Order: {
       list: async (sort = '-created_date', limit = 200) => {
-        return request('/orders');
+        try {
+          const res = await request('/orders');
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: Order.list failed', err);
+          return [];
+        }
       },
 
       create: async (/** @type {JsonObject} */ data) => {
@@ -271,12 +293,24 @@ export const apiClient = {
 
     B2BInquiry: {
       list: async (sort = '-created_date', limit = 200) => {
-        return request('/inquiries');
+        try {
+          const res = await request('/inquiries');
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: B2BInquiry.list failed', err);
+          return [];
+        }
       },
 
       filter: async (params = {}) => {
-        const queryParams = new URLSearchParams(params);
-        return request(`/inquiries?${queryParams.toString()}`);
+        try {
+          const queryParams = new URLSearchParams(params);
+          const res = await request(`/inquiries?${queryParams.toString()}`);
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: B2BInquiry.filter failed', err);
+          return [];
+        }
       },
 
       create: async (/** @type {JsonObject} */ data) => {
@@ -296,7 +330,20 @@ export const apiClient = {
 
     User: {
       list: async () => {
-        return request('/users');
+        try {
+          const res = await request('/users');
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: User.list failed', err);
+          return [];
+        }
+      },
+
+      create: async (/** @type {JsonObject} */ data) => {
+        return request('/users', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
       },
 
       get: async (/** @type {string | number} */ id) => {
@@ -332,7 +379,12 @@ export const apiClient = {
 
     SiteContent: {
       getAll: async () => {
-        return request('/site-content');
+        try {
+          return await request('/site-content');
+        } catch (err) {
+          console.warn('apiClient: SiteContent.getAll failed', err);
+          return {};
+        }
       },
 
       get: async (/** @type {string} */ key) => {

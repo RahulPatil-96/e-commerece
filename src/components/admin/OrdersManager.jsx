@@ -20,7 +20,10 @@ export default function OrdersManager() {
 
   const fetch = () => {
     setLoading(true);
-    apiClient.entities.Order.list('-created_date', 200).then(setOrders).finally(() => setLoading(false));
+    apiClient.entities.Order.list('-created_date', 200)
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .catch(() => setOrders([]))
+      .finally(() => setLoading(false));
   };
 
   useEffect(fetch, []);

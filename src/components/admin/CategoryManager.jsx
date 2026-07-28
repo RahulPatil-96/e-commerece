@@ -23,7 +23,8 @@ export default function CategoryManager() {
   const fetchCategories = () => {
     setLoading(true);
     apiClient.entities.Category.list()
-      .then(setCategories)
+      .then((data) => setCategories(Array.isArray(data) ? data : []))
+      .catch(() => setCategories([]))
       .finally(() => setLoading(false));
   };
 

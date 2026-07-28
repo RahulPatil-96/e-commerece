@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, Shield, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Users, Shield, Trash2, Loader2, AlertCircle, Plus, X } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -33,11 +33,34 @@ export default function UsersManager() {
   const [deleting, setDeleting] = useState(false);
   /** @type {[number | null, import('react').Dispatch<import('react').SetStateAction<number | null>>]} */
   const [updatingRole, setUpdatingRole] = useState(/** @type {number | null} */ (null));
+  const [modalOpen, setModalOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState('user');
+  const [creating, setCreating] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     loadUsers();
   }, []);
+
+  async function handleCreateUser(/** @type {React.FormEvent} */ e) {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await apiClient.entities.User.create({ email: newEmail, password: newPassword, role: newRole });
+      toast({ title: 'User created successfully' });
+      setModalOpen(false);
+      setNewEmail('');
+      setNewPassword('');
+      setNewRole('user');
+      loadUsers();
+    } catch (/** @type {any} */ err) {
+      toast({ title: 'Failed to create user', description: err.message || 'Error creating user', variant: 'destructive' });
+    } finally {
+      setCreating(false);
+    }
+  }
 
   async function loadUsers() {
     setLoading(true);
@@ -125,6 +148,12 @@ export default function UsersManager() {
           <h2 className="font-display text-xl font-medium">Manage Users</h2>
           <p className="text-sm text-muted-foreground">{users.length} registered user{users.length !== 1 ? 's' : ''}</p>
         </div>
+        <button
+          onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium hover:bg-accent transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add User
+        </button>
       </div>
 
       <div className="bg-card border border-border rounded-sm overflow-hidden">
@@ -223,6 +252,70 @@ export default function UsersManager() {
           </table>
         </div>
       </div>
+
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setModalOpen(false)} />
+          <div className="relative bg-background border border-border rounded-sm w-full max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-display text-lg font-medium">Create New User</h3>
+              <button onClick={() => setModalOpen(false)}><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Email *</label>
+                <input
+                  type="email"
+                  required
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Password *</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Role</label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="flex-1 border border-border py-2.5 rounded-full text-sm font-medium hover:bg-secondary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex-1 bg-primary text-primary-foreground py-2.5 rounded-full text-sm font-medium hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  {creating ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

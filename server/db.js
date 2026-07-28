@@ -15,13 +15,15 @@ let isPgAvailable = false;
 const isProduction = process.env.NODE_ENV === 'production';
 
 const connectionString = process.env.DATABASE_URL;
+const forceMemoryStore = process.env.USE_MEMORY_STORE === 'true';
+const allowMemoryFallback = process.env.ALLOW_MEMORY_FALLBACK !== 'false';
 
 // Test if DATABASE_URL is provided and not default placeholder
 const isValidConnectionString = connectionString &&
   !connectionString.includes('your_password') &&
   !connectionString.includes('ep-example-123456');
 
-if (isValidConnectionString) {
+if (!forceMemoryStore && isValidConnectionString) {
   try {
     pool = new Pool({
       connectionString,
@@ -30,18 +32,25 @@ if (isValidConnectionString) {
         : false,
     });
     isPgAvailable = true;
-console.log('Configured Neon PostgreSQL Pool');
+    console.log('Configured Neon PostgreSQL Pool');
   } catch (err) {
     console.error('⚠️ Failed to initialize PG Pool:', err.message);
-    if (isProduction) {
+    if (isProduction || !allowMemoryFallback) {
       throw err;
     }
   }
 } else {
-  if (isProduction) {
-    throw new Error('Production requires a valid DATABASE_URL. Please set DATABASE_URL to a working PostgreSQL connection string.');
+  if (forceMemoryStore) {
+    console.log('ℹ️ USE_MEMORY_STORE=true. Forcing in-memory store mode.');
+  } else if (!allowMemoryFallback) {
+    if (isProduction) {
+      throw new Error('Production requires a valid DATABASE_URL. Please set DATABASE_URL.');
+    } else {
+      throw new Error('Memory fallback disabled (ALLOW_MEMORY_FALLBACK=false) but no valid DATABASE_URL provided.');
+    }
+  } else {
+    console.log('ℹ️ No valid DATABASE_URL provided. Running with robust mock state layer.');
   }
-  console.log('ℹ️ No valid DATABASE_URL provided. Running with robust mock state layer.');
 }
 
 
@@ -77,6 +86,7 @@ export function getMemoryStore() {
 }
 
 export function isDbConnected() {
+  if (forceMemoryStore) return false;
   return isPgAvailable;
 }
 

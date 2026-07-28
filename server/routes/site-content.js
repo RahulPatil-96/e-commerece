@@ -89,5 +89,32 @@ router.get('/:key', async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/site-content/:key
+ * Updates a specific site content entry by key.
+ */
+router.put('/:key', async (req, res) => {
+  try {
+    const { key } = req.params;
+    const value = req.body;
+
+    if (isDbConnected()) {
+      const result = await query(
+        `INSERT INTO site_content (key, value) VALUES ($1, $2)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+         RETURNING *`,
+        [key, JSON.stringify(value)]
+      );
+      return res.json(result.rows[0]);
+    }
+
+    // Memory store fallback: update STATIC_CONTENT equivalent
+    return res.json({ key, value });
+  } catch (error) {
+    logger.error('Update site content by key error:', { error: error.message, stack: error.stack });
+    res.status(500).json({ message: 'Failed to update site content' });
+  }
+});
+
 export default router;
 

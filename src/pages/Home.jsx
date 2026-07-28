@@ -16,9 +16,13 @@ export default function Home() {
   useEffect(() => {
     apiClient.entities.Product.list('-created_date', 50)
       .then(data => {
-        const featured = data.filter(/** @param {any} p */ (p) => p.featured);
-        setProducts(featured.length >= 4 ? featured : data.slice(0, 8));
-        setNewArrivals(data.slice(0, 4));
+        const featured = (data || []).filter(/** @param {any} p */ (p) => p.featured);
+        setProducts(featured.length >= 4 ? featured : (data || []).slice(0, 8));
+        setNewArrivals((data || []).slice(0, 4));
+      })
+      .catch(() => {
+        setProducts([]);
+        setNewArrivals([]);
       })
       .finally(() => setLoading(false));
   }, []);

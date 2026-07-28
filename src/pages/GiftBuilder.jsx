@@ -46,7 +46,8 @@ export default function GiftBuilder() {
 
   useEffect(() => {
     apiClient.entities.Product.list('-created_date', 50)
-      .then(data => setProducts(data.filter(/** @param {any} p */ (p) => (p.audience || 'both') !== 'wholesale')))
+      .then(data => setProducts((data || []).filter(/** @param {any} p */ (p) => (p.audience || 'both') !== 'wholesale')))
+      .catch(() => setProducts([]))
       .finally(() => setLoading(false));
   }, []);
 
