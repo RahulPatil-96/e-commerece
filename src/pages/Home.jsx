@@ -45,7 +45,7 @@ export default function Home() {
 
   return (
     <div className="overflow-hidden">
-      <PageMeta title="Home" description="Discover premium stationery, personalized gifting, and thoughtful desk essentials from Lekha." />
+      <PageMeta title="Home" description="Discover premium stationery, personalized gifting, and thoughtful desk essentials from Arihant." />
       {/* Full-screen Hero */}
       <section className="relative h-[92vh] min-h-[600px] overflow-hidden">
         <Image src="https://images.unsplash.com/photo-1517842645767-c639042777db?w=1600&q=80" alt="" className="absolute inset-0 w-full h-full object-cover" fittingType="fill" />
@@ -229,7 +229,7 @@ export default function Home() {
               Made by people<br />who love paper.
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              Lekha began in a small Bengaluru studio with a simple belief: the tools we write with should inspire us. Every notebook is bound by hand, every pen tested for flow, every paper sourced responsibly.
+              Arihant began in a small Bengaluru studio with a simple belief: the tools we write with should inspire us. Every notebook is bound by hand, every pen tested for flow, every paper sourced responsibly.
             </p>
             <p className="text-muted-foreground leading-relaxed">
               From students to startups, we serve thousands of customers across India — with the same care we started with.

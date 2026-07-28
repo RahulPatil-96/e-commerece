@@ -9,7 +9,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  defaultMeta: { service: 'lekha-api' },
+  defaultMeta: { service: 'arihant-api' },
   transports: [
     // Console transport - always active
     new winston.transports.Console({

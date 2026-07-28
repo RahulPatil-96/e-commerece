@@ -104,7 +104,7 @@ export default function ProductDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-      <PageMeta title={product?.name || 'Product'} description={product ? `${product.name} — ${product.description || 'Premium stationery from Lekha.'}` : 'View product details from Lekha Stationery.'} />
+      <PageMeta title={product?.name || 'Product'} description={product ? `${product.name} — ${product.description || 'Premium stationery from Arihant.'}` : 'View product details from Arihant Stationery.'} />
       <Link to="/shop" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-accent transition-colors mb-8">
         <ArrowLeft className="w-4 h-4" /> Back to Shop
       </Link>

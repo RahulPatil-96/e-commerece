@@ -6,31 +6,6 @@ import { useCart } from '@/lib/cartContext';
 import ProductCard from '@/components/ProductCard';
 import PageMeta from '@/components/PageMeta';
 
-const MATERIAL_OPTIONS = [
-  { label: 'Paper', match: ['paper'] },
-  { label: 'Leather', match: ['leather'] },
-  { label: 'Wood', match: ['wood', 'walnut', 'beech'] },
-  { label: 'Metal', match: ['aluminum', 'aluminium', 'metal', 'steel', 'brass', 'iron'] },
-  { label: 'Plastic', match: ['plastic', 'acrylic'] },
-  { label: 'Fabric', match: ['fabric', 'cotton', 'linen', 'canvas'] },
-];
-
-const COLOR_SWATCHES = {
-  'Black': '#1a1a1a',
-  'Brown': '#6B4423',
-  'Blue': '#2C5F8A',
-  'Navy': '#1B2845',
-  'Green': '#3A6B47',
-  'Beige': '#D4C5A0',
-  'Burgundy': '#6B2C39',
-  'Gold': '#C9A84C',
-  'Silver': '#B8B8B8',
-  'White': '#F5F5F0',
-  'Multicolor': 'linear-gradient(135deg, #ff6b6b, #4ecdc4, #ffe66d)',
-};
-
-const LIGHT_COLORS = ['White', 'Beige', 'Silver', 'Gold'];
-
 export default function Shop() {
   const [products, setProducts] = useState(/** @type {any[]} */([]));
   const [loading, setLoading] = useState(true);
@@ -41,20 +16,31 @@ export default function Shop() {
   const [selectedMaterials, setSelectedMaterials] = useState(/** @type {string[]} */([]));
   const [selectedColors, setSelectedColors] = useState(/** @type {string[]} */([]));
   const [allCategories, setAllCategories] = useState(/** @type {string[]} */([]));
+  const [materialOptions, setMaterialOptions] = useState(/** @type {Array<{label: string, match: string[]}>} */([]));
+  const [colorSwatches, setColorSwatches] = useState(/** @type {Record<string, string>} */({}));
+  const [contentLoading, setContentLoading] = useState(true);
   const { mode } = useCart();
 
   const activeCategory = searchParams.get('category') || 'All';
   const search = searchParams.get('search') || '';
 
+  const LIGHT_COLORS = useMemo(() => {
+    const light = ['White', 'Beige', 'Silver', 'Gold', 'Beige'];
+    return Object.keys(colorSwatches).filter(c => light.includes(c));
+  }, [colorSwatches]);
+
   useEffect(() => {
-    // Fetch categories from API
-    apiClient.entities.SiteContent.get('shop_categories')
+    // Fetch site content from API
+    apiClient.entities.SiteContent.getAll()
       .then(data => {
-        if (Array.isArray(data)) setAllCategories(data);
+        if (Array.isArray(data.shop_categories)) setAllCategories(data.shop_categories);
+        if (Array.isArray(data.shop_material_options)) setMaterialOptions(data.shop_material_options);
+        if (data.shop_color_swatches) setColorSwatches(data.shop_color_swatches);
       })
       .catch(() => {
         // Fallback to empty — component works with just API data
-      });
+      })
+      .finally(() => setContentLoading(false));
   }, []);
 
   useEffect(() => {
@@ -74,12 +60,12 @@ export default function Shop() {
     products.forEach(/** @param {any} p */ (p) => {
       if (!p.material) return;
       const mat = p.material.toLowerCase();
-      MATERIAL_OPTIONS.forEach(m => {
+      materialOptions.forEach(m => {
         if (m.match.some(k => mat.includes(k))) set.add(m.label);
       });
     });
     return [...set];
-  }, [products]);
+  }, [products, materialOptions]);
 
   const availableColors = useMemo(() => {
     const set = new Set();
@@ -94,7 +80,7 @@ export default function Shop() {
       if (selectedMaterials.length > 0) {
         const mat = (p.material || '').toLowerCase();
         const matches = selectedMaterials.some(label => {
-          const opt = MATERIAL_OPTIONS.find(m => m.label === label);
+          const opt = materialOptions.find(m => m.label === label);
           return opt ? opt.match.some(k => mat.includes(k)) : false;
         });
         if (!matches) return false;
@@ -251,7 +237,7 @@ export default function Shop() {
                 onClick={() => toggleColor(color)}
                 title={color}
                 className={`relative w-8 h-8 rounded-full border-2 transition-all ${selectedColors.includes(color) ? 'border-accent scale-110 ring-2 ring-accent/20' : 'border-border hover:scale-105'}`}
-                style={{ background: /** @type {Record<string, string>} */ (COLOR_SWATCHES)[color] || '#ccc' }}
+                style={{ background: colorSwatches[color] || '#ccc' }}
               >
                 {selectedColors.includes(color) && (
                   <Check className={`w-3.5 h-3.5 absolute inset-0 m-auto ${LIGHT_COLORS.includes(color) ? 'text-black' : 'text-white'}`} />
@@ -266,7 +252,7 @@ export default function Shop() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-      <PageMeta title="Shop" description="Browse the full Lekha stationery collection with filters for category, price, material, and color." />
+      <PageMeta title="Shop" description="Browse the full Arihant stationery collection with filters for category, price, material, and color." />
       {/* Header */}
       <div className="mb-10">
         <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Catalogue</span>

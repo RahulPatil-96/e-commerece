@@ -3,18 +3,18 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: lekha-db
+    container_name: arihant-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: lekha
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lekha_secret}
-      POSTGRES_DB: lekha
+      POSTGRES_USER: arihant
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arihant_secret}
+      POSTGRES_DB: arihant
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lekha"]
+      test: ["CMD-SHELL", "pg_isready -U arihant"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,14 +23,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lekha-app
+    container_name: arihant-app
     restart: unless-stopped
     ports:
       - "5000:5000"
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://lekha:${POSTGRES_PASSWORD:-lekha_secret}@postgres:5432/lekha
+      DATABASE_URL: postgresql://arihant:${POSTGRES_PASSWORD:-arihant_secret}@postgres:5432/arihant
       JWT_SECRET: ${JWT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:5000}
@@ -39,7 +39,7 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
-      MAILER_FROM: ${MAILER_FROM:-noreply@lekha.com}
+      MAILER_FROM: ${MAILER_FROM:-noreply@arihant.com}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}

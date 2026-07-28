@@ -1,6 +1,6 @@
 const API_BASE = '/api';
 
-const TOKEN_KEY = 'lekha_access_token';
+const TOKEN_KEY = 'arihant_access_token';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
 const MAX_RETRIES = 2;
 
@@ -176,6 +176,32 @@ export const apiClient = {
   },
 
   entities: {
+    Category: {
+      list: async () => {
+        return request('/categories');
+      },
+
+      create: async (/** @type {JsonObject} */ data) => {
+        return request('/categories', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      },
+
+      update: async (/** @type {string | number} */ id, /** @type {JsonObject} */ data) => {
+        return request(`/categories/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        });
+      },
+
+      delete: async (/** @type {string | number} */ id) => {
+        return request(`/categories/${id}`, {
+          method: 'DELETE',
+        });
+      },
+    },
+
     Product: {
       list: async (sort = '-created_date', limit = 200) => {
         const queryParams = new URLSearchParams();
@@ -311,6 +337,13 @@ export const apiClient = {
 
       get: async (/** @type {string} */ key) => {
         return request(`/site-content/${key}`);
+      },
+
+      update: async (/** @type {string} */ key, /** @type {unknown} */ data) => {
+        return request(`/site-content/${key}`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        });
       },
     },
   },

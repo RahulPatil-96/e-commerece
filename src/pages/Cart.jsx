@@ -64,7 +64,7 @@ export default function Cart() {
         key: paymentOrder.keyId || paymentConfig.publishableKey,
         amount: Math.round(paymentOrder.amount * 100),
         currency: paymentOrder.currency || 'INR',
-        name: 'Lekha',
+        name: 'Arihant',
         description: `Order for ${items.length} item${items.length > 1 ? 's' : ''}`,
         order_id: paymentOrder.orderId,
         prefill: {

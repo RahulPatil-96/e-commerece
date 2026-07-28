@@ -38,7 +38,7 @@ export const CATEGORIES = [
 export const PRODUCTS = [
   {
     id: 1,
-    name: 'Lekha Artisan Hardcover Journal (A5)',
+    name: 'Arihant Artisan Hardcover Journal (A5)',
     slug: 'artisan-hardcover-journal-a5',
     description: 'Hand-bound notebook with 160 pages of 120 GSM fountain-pen friendly paper.',
     long_description: 'Designed for writers, creators, and daily thinkers. Features lay-flat 180° binding, expandable back pocket, dual satin ribbon markers, and heavyweight acid-free paper.',
@@ -200,7 +200,7 @@ export const HOME_STATS = [
 export const HOME_TESTIMONIALS = [
   { name: 'Priya Sharma', role: 'Architect, Mumbai', text: 'The paper quality is exceptional. My fountain pens glide — these are the only notebooks I use now.' },
   { name: 'Rohan Mehta', role: 'Founder, BlueSeed Labs', text: 'Ordered 500 branded notebooks for our team. Seamless wholesale process and stellar finish.' },
-  { name: 'Ananya Iyer', role: 'Illustrator', text: 'Beautiful, sustainable, and thoughtfully designed. Lekha gets what creators need.' },
+  { name: 'Ananya Iyer', role: 'Illustrator', text: 'Beautiful, sustainable, and thoughtfully designed. Arihant gets what creators need.' },
 ];
 
 // ---- Seasonal Campaigns ----
@@ -264,12 +264,26 @@ export const B2B_TIERS = [
 // ---- Admin User ----
 export const ADMIN_USER = {
   id: 1,
-  email: 'admin@lekha.com',
+  email: 'admin@arihant.com',
   password_hash: '$2a$10$.3BVO3eEFm4zm/wiblzwDe2QOkwPiwnrM7A4tjz9k/q5gqcmGx0cu', // 'admin123'
   role: 'admin',
   is_verified: true,
   created_at: new Date().toISOString(),
 };
+
+// ---- About Page Data ----
+export const ABOUT_VALUES = [
+  { icon: 'Recycle', title: 'Sustainability First', desc: 'FSC-certified paper, soy-based inks, and plastic-free packaging on every order.' },
+  { icon: 'Heart', title: 'Crafted by Hand', desc: 'Each notebook is hand-stitched and quality-checked in our Bengaluru studio.' },
+  { icon: 'Award', title: 'Built to Last', desc: 'We design for longevity — durable bindings, premium paper, timeless aesthetics.' },
+];
+
+export const ABOUT_STATS = [
+  { num: '2019', label: 'Founded in Bengaluru' },
+  { num: '12k+', label: 'Customers served' },
+  { num: '500+', label: 'B2B partners' },
+  { num: '100%', label: 'Recyclable packaging' },
+];
 
 // ---- Featured Collections Config ----
 export const FEATURED_COLLECTIONS_CONFIG = [
@@ -304,7 +318,7 @@ export async function seedDatabase() {
     memory.categories = CATEGORIES.map(c => ({ ...c }));
     memory.customizationRules = { ...DEFAULT_CUSTOMIZATION_RULES };
 
-    console.log('🎉 Mock store seeded! Default admin created (admin@lekha.com / admin123).');
+    console.log('🎉 Mock store seeded! Default admin created (admin@arihant.com / admin123).');
     return;
   }
 
@@ -358,6 +372,8 @@ export async function seedDatabase() {
       { key: 'b2b_benefits', value: B2B_BENEFITS },
       { key: 'b2b_tiers', value: B2B_TIERS },
       { key: 'featured_collections_config', value: FEATURED_COLLECTIONS_CONFIG },
+      { key: 'about_values', value: ABOUT_VALUES },
+      { key: 'about_stats', value: ABOUT_STATS },
     ];
 
     for (const entry of siteContentEntries) {
@@ -374,10 +390,10 @@ export async function seedDatabase() {
       `INSERT INTO users (email, password_hash, role)
        VALUES ($1, $2, $3)
        ON CONFLICT (email) DO NOTHING`,
-      ['admin@lekha.com', adminPasswordHash, 'admin']
+      ['admin@arihant.com', adminPasswordHash, 'admin']
     );
 
-    console.log('🎉 Seed complete! Default admin created (admin@lekha.com / admin123).');
+    console.log('🎉 Seed complete! Default admin created (admin@arihant.com / admin123).');
   } catch (err) {
     console.error('⚠️ Error seeding database:', err.message);
   }

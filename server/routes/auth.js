@@ -38,10 +38,10 @@ function signToken(user) {
 }
 
 async function sendVerificationEmail(email, code) {
-  const confirmMessage = `Use the following code to verify your Lekha account: ${code}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`;
+  const confirmMessage = `Use the following code to verify your Arihant account: ${code}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`;
   await sendEmail({
     to: email,
-    subject: 'Verify your Lekha account',
+    subject: 'Verify your Arihant account',
     text: confirmMessage,
     html: `<p>${confirmMessage}</p>`,
   });
@@ -52,7 +52,7 @@ async function sendPasswordResetEmail(email, token) {
   const message = `Click the link below to reset your password. This link expires in ${RESET_EXPIRY_MINUTES} minutes.`;
   await sendEmail({
     to: email,
-    subject: 'Reset your Lekha password',
+    subject: 'Reset your Arihant password',
     text: `${message}\n\n${resetUrl}`,
     html: `<p>${message}</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
   });
@@ -82,19 +82,12 @@ router.post('/register', async (req, res) => {
       }
 
       const userResult = await query(
-        'INSERT INTO users (email, password_hash, role, is_verified) VALUES ($1, $2, $3, FALSE) RETURNING id, email, role',
+        'INSERT INTO users (email, password_hash, role, is_verified) VALUES ($1, $2, $3, TRUE) RETURNING id, email, role',
         [normalizedEmail, passwordHash, 'user']
       );
       const newUser = userResult.rows[0];
-      const code = createVerificationCode();
-      await query(
-        `INSERT INTO email_verifications (user_id, email, code, expires_at)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP + INTERVAL '${OTP_EXPIRY_MINUTES} minutes')
-         ON CONFLICT (email) DO UPDATE SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at, used = false`,
-        [newUser.id, normalizedEmail, code]
-      );
-      await sendVerificationEmail(normalizedEmail, code);
-      return res.json({ success: true, message: 'Verification code sent to your email' });
+      const token = signToken(newUser);
+      return res.json({ access_token: token, user: { id: newUser.id, email: newUser.email, role: newUser.role } });
     }
 
     const memory = getMemoryStore();
@@ -107,26 +100,13 @@ router.post('/register', async (req, res) => {
       email: normalizedEmail,
       password_hash: passwordHash,
       role: 'user',
-      is_verified: false,
+      is_verified: true,
       created_at: new Date().toISOString(),
     };
     memory.users.push(newUser);
 
-    const code = createVerificationCode();
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000).toISOString();
-    memory.email_verifications = memory.email_verifications.filter((entry) => entry.email !== normalizedEmail);
-    memory.email_verifications.push({
-      id: memory.email_verifications.length + 1,
-      user_id: newUser.id,
-      email: normalizedEmail,
-      code,
-      expires_at: expiresAt,
-      used: false,
-      created_at: new Date().toISOString(),
-    });
-    await sendVerificationEmail(normalizedEmail, code);
-
-    return res.json({ success: true, message: 'Verification code sent to your email' });
+    const token = signToken(newUser);
+    return res.json({ access_token: token, user: { id: newUser.id, email: newUser.email, role: newUser.role } });
   } catch (error) {
     logger.error('Register error:', { error: error.message, stack: error.stack });
     res.status(400).json({ message: error.message || 'Registration failed' });

@@ -14,6 +14,7 @@ import newsletterRouter from './routes/newsletter.js';
 import paymentsRouter from './routes/payments.js';
 import usersRouter from './routes/users.js';
 import customizationRulesRouter from './routes/customization-rules.js';
+import categoriesRouter from './routes/categories.js';
 import siteContentRouter from './routes/site-content.js';
 import logger from './utils/logger.js';
 
@@ -106,6 +107,7 @@ app.use('/api/newsletter', newsletterRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/customization-rules', customizationRulesRouter);
+app.use('/api/categories', categoriesRouter);
 app.use('/api/site-content', siteContentRouter);
 
 // Health check endpoint
@@ -153,7 +155,7 @@ async function startServer() {
     await seedDatabase();
 
     app.listen(PORT, () => {
-      logger.info(`Lekha Express Backend Server running on http://localhost:${PORT}`);
+      logger.info(`Arihant Express Backend Server running on http://localhost:${PORT}`);
     });
   } catch (err) {
     logger.error('Failed to start server:', { error: err.message });

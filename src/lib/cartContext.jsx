@@ -6,8 +6,8 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 /** @type {React.Context<CartContextValue | null>} */
 const CartContext = createContext(null);
 
-const STORAGE_KEY = 'lekha_cart';
-const MODE_KEY = 'lekha_mode';
+const STORAGE_KEY = 'arihant_cart';
+const MODE_KEY = 'arihant_mode';
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {

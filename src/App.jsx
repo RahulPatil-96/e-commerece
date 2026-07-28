@@ -41,13 +41,13 @@ const MainRoutes = () => {
         <html lang="en" />
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta property="og:title" content="Lekha Stationery" />
+        <meta property="og:title" content="Arihant Stationery" />
         <meta property="og:description" content="Premium handcrafted stationery and desk accessories." />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
-        <link rel="canonical" href="https://lekha-stationery.vercel.app" />
+        <link rel="canonical" href="https://arihant-stationery.vercel.app" />
       </Helmet>
-      <PageMeta title="Lekha Stationery" description="Lekha — Premium handcrafted stationery and desk accessories. Notebooks, pens, planners, and more." canonical="https://lekha-stationery.vercel.app" />
+      <PageMeta title="Arihant Stationery" description="Arihant — Premium handcrafted stationery and desk accessories. Notebooks, pens, planners, and more." canonical="https://arihant-stationery.vercel.app" />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />

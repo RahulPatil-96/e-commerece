@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Search, User, LogOut, Package } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, User, LogOut, Package, LayoutDashboard } from 'lucide-react';
 import { useCart } from '@/lib/cartContext';
 import { useAuth } from '@/lib/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -40,9 +40,12 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'Shop', path: '/shop' },
+    { label: 'Gift Builder', path: '/gift-builder' },
     { label: 'B2B / Wholesale', path: '/b2b' },
     { label: 'About', path: '/about' },
   ];
+
+  const isAdmin = user?.role === 'admin';
 
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-background/90 backdrop-blur-md shadow-sm' : 'bg-background'}`}>
@@ -50,7 +53,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <span className="font-display text-2xl md:text-3xl font-medium tracking-tight">Lekha<span className="text-accent">.</span></span>
+            <span className="font-display text-2xl md:text-3xl font-medium tracking-tight">Arihant<span className="text-accent">.</span></span>
           </Link>
 
           {/* Desktop nav */}
@@ -125,11 +128,19 @@ export default function Navbar() {
                     <p className="text-sm font-medium truncate">{user.name || 'User'}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/cart')} className="cursor-pointer">
                     <Package className="w-4 h-4 mr-2" />
                     My Orders
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
                     <LogOut className="w-4 h-4 mr-2" />

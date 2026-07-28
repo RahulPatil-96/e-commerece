@@ -7,14 +7,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { Image } from '@/components/ui/image';
 import PageMeta from '@/components/PageMeta';
 
-const DEFAULT_OCCASIONS = ['Birthday', 'Anniversary', 'Wedding', 'Baby Shower', 'Graduation', "Teacher's Day", "Valentine's Day", 'Christmas', 'Diwali', 'Corporate'];
-
-const DEFAULT_PACKAGING = [
-  { id: 'classic', label: 'Classic Kraft', price: 0, desc: 'Recycled kraft box with twine' },
-  { id: 'premium', label: 'Premium Wrap', price: 99, desc: 'Matte finish, satin ribbon' },
-  { id: 'luxury', label: 'Luxury Hamper', price: 199, desc: 'Rigid magnetic-closure box' },
-];
-
 /** @typedef {{ id: string | number, image_url?: string, name: string, category?: string, price: number, audience?: string, [key: string]: any }} Product */
 /** @typedef {{ product: Product, qty: number }} SelectedItem */
 
@@ -24,24 +16,32 @@ export default function GiftBuilder() {
   const { toast } = useToast();
   const [products, setProducts] = useState(/** @type {Product[]} */([]));
   const [loading, setLoading] = useState(true);
-  const [occasion, setOccasion] = useState('Birthday');
+  const [occasion, setOccasion] = useState('');
   const [selected, setSelected] = useState(/** @type {SelectedItem[]} */([]));
-  const [packaging, setPackaging] = useState('classic');
+  const [packaging, setPackaging] = useState('');
   const [addCard, setAddCard] = useState(false);
   const [message, setMessage] = useState('');
-  const [occasions, setOccasions] = useState(DEFAULT_OCCASIONS);
-  const [packagingOptions, setPackagingOptions] = useState(DEFAULT_PACKAGING);
+  const [occasions, setOccasions] = useState(/** @type {string[]} */([]));
+  const [packagingOptions, setPackagingOptions] = useState(/** @type {Array<{id: string, label: string, price: number, desc: string}>} */([]));
+  const [contentLoading, setContentLoading] = useState(true);
 
   useEffect(() => {
     // Fetch occasions and packaging from API
     apiClient.entities.SiteContent.getAll()
       .then(data => {
-        if (data.gift_occasions) setOccasions(data.gift_occasions);
-        if (data.gift_packaging) setPackagingOptions(data.gift_packaging);
+        if (Array.isArray(data.gift_occasions) && data.gift_occasions.length > 0) {
+          setOccasions(data.gift_occasions);
+          if (!occasion) setOccasion(data.gift_occasions[0]);
+        }
+        if (Array.isArray(data.gift_packaging) && data.gift_packaging.length > 0) {
+          setPackagingOptions(data.gift_packaging);
+          if (!packaging) setPackaging(data.gift_packaging[0].id);
+        }
       })
       .catch(() => {
-        // Fallback to defaults
-      });
+        // Empty state handled gracefully
+      })
+      .finally(() => setContentLoading(false));
   }, []);
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function GiftBuilder() {
   };
 
   const itemsTotal = selected.reduce((sum, s) => sum + s.product.price * s.qty, 0);
-  const packagingPrice = packagingOptions.find(p => p.id === packaging)?.price || 0;
+  const packagingPrice = packagingOptions.find(p => String(p.id) === String(packaging))?.price || 0;
   const cardPrice = addCard ? 49 : 0;
   const total = itemsTotal + packagingPrice + cardPrice;
   const itemCount = selected.reduce((sum, s) => sum + s.qty, 0);
@@ -88,7 +88,7 @@ export default function GiftBuilder() {
     }, 1, {
       type: 'giftbox',
       occasion,
-packaging: packagingOptions.find(p => p.id === packaging)?.label,
+      packaging: packagingOptions.find(p => String(p.id) === String(packaging))?.label,
       message: addCard && message ? message : '',
       items: selected.map(s => ({ name: s.product.name, qty: s.qty, price: s.product.price })),
     });

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_lekha_stationery_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_arihant_stationery_2026';
 
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];

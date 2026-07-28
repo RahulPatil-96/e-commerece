@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Package, Tags, Headphones, Truck, ArrowRight, ShoppingBag } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
@@ -13,11 +13,32 @@ export default function B2B() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [benefits, setBenefits] = useState(/** @type {Array<{icon: React.ElementType, title: string, desc: string}>} */([]));
+  const [tiers, setTiers] = useState(/** @type {Array<{qty: string, discount: string, desc: string}>} */([]));
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     company_name: '', contact_name: '', email: '', phone: '', gst_number: '', products: '', quantity: '', message: ''
   });
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    apiClient.entities.SiteContent.getAll()
+      .then(data => {
+        if (Array.isArray(data.b2b_benefits)) {
+          const ICON_MAP = /** @type {Record<string, React.ElementType>} */({ Package, Tags, Headphones, Truck, CheckCircle2 });
+          setBenefits(data.b2b_benefits.map((/** @type {{icon: string, title: string, desc: string}} */ b) => ({
+            ...b,
+            icon: ICON_MAP[b.icon] || Package,
+          })));
+        }
+        if (Array.isArray(data.b2b_tiers)) setTiers(data.b2b_tiers);
+      })
+      .catch(() => {
+        // Empty state handled gracefully
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSubmit = async (/** @type {React.FormEvent<HTMLFormElement>} */ e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
@@ -28,26 +49,12 @@ export default function B2B() {
     }
   };
 
-  const benefits = [
-    { icon: Tags, title: 'Wholesale Pricing', desc: 'Up to 40% off retail on bulk orders, with tiered discounts as quantity grows.' },
-    { icon: Package, title: 'Custom Branding', desc: 'Add your logo, choose colours, and customize covers for a cohesive brand identity.' },
-    { icon: Truck, title: 'Pan-India Delivery', desc: 'Reliable logistics with tracking, delivered to offices and warehouses nationwide.' },
-    { icon: Headphones, title: 'Dedicated Account Manager', desc: 'A single point of contact for quotes, reorders, and ongoing support.' },
-  ];
-
-  const tiers = [
-    { qty: '50–199', discount: '15%', desc: 'Great for small teams' },
-    { qty: '200–499', discount: '25%', desc: 'For growing organizations' },
-    { qty: '500–999', discount: '32%', desc: 'Best value for mid-scale' },
-    { qty: '1000+', discount: '40%', desc: 'Enterprise & bulk' },
-  ];
-
   if (submitted) {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
         <CheckCircle2 className="w-16 h-16 text-accent mx-auto mb-6" />
         <h1 className="font-display text-3xl font-medium mb-3">Inquiry received!</h1>
-        <p className="text-muted-foreground mb-8">Thank you for your interest in Lekha wholesale. Our B2B team will review your requirements and get back within 1 business day.</p>
+        <p className="text-muted-foreground mb-8">Thank you for your interest in Arihant wholesale. Our B2B team will review your requirements and get back within 1 business day.</p>
         <Link to="/shop" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-7 py-3.5 rounded-full text-sm font-medium hover:bg-accent transition-colors">
           Browse Products <ArrowRight className="w-4 h-4" />
         </Link>
@@ -57,13 +64,13 @@ export default function B2B() {
 
   return (
     <div>
-      <PageMeta title="B2B" description="Request bulk stationery quotes for your business and discover wholesale pricing from Lekha." />
+      <PageMeta title="B2B" description="Request bulk stationery quotes for your business and discover wholesale pricing from Arihant." />
       {/* Hero */}
       <section className="relative overflow-hidden bg-primary text-primary-foreground">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-5">
-              <span className="text-xs font-medium uppercase tracking-widest text-accent">Lekha for Business</span>
+              <span className="text-xs font-medium uppercase tracking-widest text-accent">Arihant for Business</span>
               <h1 className="font-display text-4xl md:text-6xl font-medium leading-[1.1]">
                 Stationery at<br />scale, done right.
               </h1>
@@ -89,14 +96,14 @@ export default function B2B() {
       {/* Benefits */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center max-w-xl mx-auto mb-14">
-          <span className="text-xs font-medium uppercase tracking-widest text-accent">Why Lekha B2B</span>
+          <span className="text-xs font-medium uppercase tracking-widest text-accent">Why Arihant B2B</span>
           <h2 className="font-display text-4xl md:text-5xl font-medium mt-3">Built for business</h2>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {benefits.map((b, i) => (
             <div key={i} className="bg-card border border-border rounded-sm p-6 space-y-3">
               <div className="w-11 h-11 rounded-full bg-accent/10 flex items-center justify-center">
-                <b.icon className="w-5 h-5 text-accent" />
+                {(() => { const Icon = b.icon; return <Icon className="w-5 h-5 text-accent" />; })()}
               </div>
               <h3 className="font-display text-lg font-medium">{b.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{b.desc}</p>

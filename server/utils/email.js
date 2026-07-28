@@ -6,7 +6,7 @@ const smtpPort = process.env.SMTP_PORT;
 const smtpSecure = process.env.SMTP_SECURE === 'true';
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
-const mailerFrom = process.env.MAILER_FROM || 'no-reply@lekha.com';
+const mailerFrom = process.env.MAILER_FROM || 'no-reply@arihant.com';
 
 let transporter = null;
 

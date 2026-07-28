@@ -28,7 +28,7 @@ async function sendOrderConfirmationEmail(order) {
   try {
     await sendEmail({
       to: order.email,
-      subject: `Your Lekha Order #${order.id}`,
+      subject: `Your Arihant Order #${order.id}`,
       text: `${message}\n\nItems:\n${order.items.map((item) => `- ${item.qty} x ${item.name} @ ₹${item.price}`).join('\n')}`,
       html: `<p>${message}</p><p><strong>Order details</strong></p><ul>${itemsHtml}</ul><p>Total: ₹${order.total.toLocaleString('en-IN')}</p>`,
     });

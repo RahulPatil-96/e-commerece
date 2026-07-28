@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1">
-            <span className="font-display text-3xl font-medium">Lekha<span className="text-accent">.</span></span>
+            <span className="font-display text-3xl font-medium">Arihant<span className="text-accent">.</span></span>
             <p className="mt-4 text-sm text-primary-foreground/70 leading-relaxed">
               Thoughtfully crafted stationery for everyday thinkers, writers, and businesses.
             </p>
@@ -32,7 +32,7 @@ export default function Footer() {
               <li><Link to="/b2b" className="text-primary-foreground/80 hover:text-accent transition-colors">Wholesale / B2B</Link></li>
               <li><Link to="/about" className="text-primary-foreground/80 hover:text-accent transition-colors">Sustainability</Link></li>
               <li><Link to="/admin" className="text-primary-foreground/80 hover:text-accent transition-colors">Admin Dashboard</Link></li>
-              <li><a href="mailto:hello@lekha.co" className="text-primary-foreground/80 hover:text-accent transition-colors">Contact</a></li>
+              <li><a href="mailto:hello@arihant.co" className="text-primary-foreground/80 hover:text-accent transition-colors">Contact</a></li>
             </ul>
           </div>
 
@@ -40,7 +40,7 @@ export default function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/50 mb-4">Get in Touch</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2 text-primary-foreground/80">
-                <Mail className="w-4 h-4 shrink-0" /> hello@lekha.co
+                <Mail className="w-4 h-4 shrink-0" /> hello@arihant.co
               </li>
               <li className="flex items-center gap-2 text-primary-foreground/80">
                 <Phone className="w-4 h-4 shrink-0" /> +91 98765 43210
@@ -58,7 +58,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-14 pt-8 border-t border-primary-foreground/15 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-primary-foreground/50">© {new Date().getFullYear()} Lekha & Co. All rights reserved.</p>
+          <p className="text-xs text-primary-foreground/50">© {new Date().getFullYear()} Arihant & Co. All rights reserved.</p>
           <div className="flex gap-5 text-xs text-primary-foreground/50">
             <a href="#" className="hover:text-accent transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-accent transition-colors">Terms of Service</a>
