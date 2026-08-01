@@ -6,23 +6,24 @@
 
 @layer base {
   :root {
-    --background: 40 33% 96%;
-    --foreground: 30 10% 12%;
+    --background: 40 33% 97%;
+    --foreground: 30 10% 10%;
     --card: 0 0% 100%;
     --card-foreground: 30 10% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 30 10% 12%;
-    --primary: 30 10% 12%;
+    --primary: 30 12% 12%;
     --primary-foreground: 40 33% 96%;
-    --secondary: 36 23% 90%;
+    --secondary: 36 25% 92%;
     --secondary-foreground: 30 10% 12%;
-    --muted: 36 20% 92%;
-    --muted-foreground: 30 6% 42%;
+    --muted: 36 22% 93%;
+    --muted-foreground: 30 6% 40%;
     --accent: 16 70% 52%;
     --accent-foreground: 40 33% 96%;
+    --accent-soft: 16 70% 96%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 36 18% 86%;
+    --border: 36 18% 88%;
     --input: 36 18% 86%;
     --ring: 16 70% 52%;
     --chart-1: 16 70% 52%;
@@ -30,7 +31,11 @@
     --chart-3: 150 20% 40%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.25rem;
+    --radius: 0.75rem;
+    --shadow-soft: 0 2px 12px rgba(30, 20, 12, 0.06);
+    --shadow-card: 0 4px 24px rgba(30, 20, 12, 0.08);
+    --shadow-lift: 0 12px 40px rgba(30, 20, 12, 0.14);
+    --shadow-glow: 0 0 0 1px rgba(192, 138, 62, 0.18), 0 8px 32px rgba(192, 138, 62, 0.22);
     --font-heading: 'Fraunces', ui-serif, Georgia, serif;
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Fraunces', ui-serif, Georgia, serif;
@@ -39,24 +44,25 @@
 
   .dark {
     --background: 30 10% 8%;
-    --foreground: 40 20% 90%;
-    --card: 30 8% 11%;
-    --card-foreground: 40 20% 90%;
-    --popover: 30 8% 11%;
-    --popover-foreground: 40 20% 90%;
-    --primary: 40 20% 90%;
+    --foreground: 40 20% 92%;
+    --card: 30 8% 12%;
+    --card-foreground: 40 20% 92%;
+    --popover: 30 8% 12%;
+    --popover-foreground: 40 20% 92%;
+    --primary: 40 20% 92%;
     --primary-foreground: 30 10% 10%;
     --secondary: 30 6% 18%;
-    --secondary-foreground: 40 20% 90%;
+    --secondary-foreground: 40 20% 92%;
     --muted: 30 6% 18%;
-    --muted-foreground: 36 10% 60%;
-    --accent: 16 70% 55%;
+    --muted-foreground: 36 10% 62%;
+    --accent: 16 70% 58%;
     --accent-foreground: 40 33% 96%;
+    --accent-soft: 16 60% 20%;
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 98%;
-    --border: 30 6% 20%;
-    --input: 30 6% 20%;
-    --ring: 16 70% 55%;
+    --border: 30 6% 22%;
+    --input: 30 6% 22%;
+    --ring: 16 70% 58%;
   }
 }
 
@@ -65,8 +71,40 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: hsl(var(--accent) / 0.25);
+    color: hsl(var(--foreground));
+  }
+
+  /* Premium scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Smooth image loading */
+  img {
+    user-select: none;
   }
 }
 
@@ -75,12 +113,102 @@
   .text-balance { text-wrap: balance; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Thin scrollbar for filter panels & drawers */
+  .thin-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+  .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+    border: none;
+  }
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+  .thin-scrollbar { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-lift { box-shadow: var(--shadow-lift); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+
+  /* Glassmorphism */
+  .glass {
+    background: hsl(var(--background) / 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+  .glass-dark {
+    background: hsl(30 12% 8% / 0.6);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsl(var(--primary-foreground) / 0.1);
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .text-gradient {
+    background: linear-gradient(120deg, hsl(var(--accent)), hsl(27 87% 67%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
+/* Marquee */
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
 .animate-marquee {
-  animation: marquee 30s linear infinite;
+  animation: marquee 32s linear infinite;
 }
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Floating */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Shimmer */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, hsl(var(--secondary)) 25%, hsl(var(--border)) 50%, hsl(var(--secondary)) 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Slow pulse glow */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.animate-glow-pulse {
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+/* Scroll indicator bounce */
+@keyframes scroll-dot {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.animate-scroll-dot {
+  animation: scroll-dot 2s ease-in-out infinite;
+}
+

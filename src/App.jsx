@@ -20,6 +20,7 @@ import About from '@/pages/About';
 import Admin from '@/pages/Admin';
 import GiftBuilder from '@/pages/GiftBuilder';
 import Orders from '@/pages/Orders';
+import Profile from '@/pages/Profile';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -61,6 +62,7 @@ const MainRoutes = () => {
           <Route path="/cart" element={<Cart />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/orders" element={<Orders />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="/b2b" element={<B2B />} />
           <Route path="/about" element={<About />} />

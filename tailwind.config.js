@@ -7,7 +7,10 @@ module.exports = {
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			sm: 'calc(var(--radius) - 4px)',
+  			'2xl': '1.25rem',
+  			'3xl': '1.75rem',
+  			'4xl': '2.25rem'
   		},
   		colors: {
   			background: 'hsl(var(--background))',
@@ -36,6 +39,7 @@ module.exports = {
   				DEFAULT: 'hsl(var(--accent))',
   				foreground: 'hsl(var(--accent-foreground))'
   			},
+  			'accent-soft': 'hsl(var(--accent-soft))',
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
@@ -50,6 +54,16 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			}
+  		},
+  		boxShadow: {
+  			sm: '0 1px 2px rgba(30, 20, 12, 0.05)',
+  			md: '0 2px 8px rgba(30, 20, 12, 0.06)',
+  			lg: 'var(--shadow-card)',
+  			xl: 'var(--shadow-lift)',
+  			'2xl': '0 24px 64px rgba(30, 20, 12, 0.18)',
+  			soft: 'var(--shadow-soft)',
+  			lift: 'var(--shadow-lift)',
+  			glow: 'var(--shadow-glow)'
   		},
   		fontFamily: {
   			heading: ['var(--font-heading)'],
@@ -73,15 +87,41 @@ module.exports = {
   			'fade-in': {
   				from: { opacity: '0' },
   				to: { opacity: '1' }
+  			},
+  			'fade-down': {
+  				from: { opacity: '0', transform: 'translateY(-16px)' },
+  				to: { opacity: '1', transform: 'translateY(0)' }
+  			},
+  			'scale-in': {
+  				from: { opacity: '0', transform: 'scale(0.96)' },
+  				to: { opacity: '1', transform: 'scale(1)' }
+  			},
+  			'slide-in-right': {
+  				from: { transform: 'translateX(100%)' },
+  				to: { transform: 'translateX(0)' }
+  			},
+  			marquee: {
+  				from: { transform: 'translateX(0)' },
+  				to: { transform: 'translateX(-50%)' }
+  			},
+  			float: {
+  				'0%, 100%': { transform: 'translateY(0)' },
+  				'50%': { transform: 'translateY(-10px)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			'fade-up': 'fade-up 0.6s ease-out forwards',
-  			'fade-in': 'fade-in 0.5s ease-out forwards'
+  			'fade-in': 'fade-in 0.5s ease-out forwards',
+  			'fade-down': 'fade-down 0.5s ease-out forwards',
+  			'scale-in': 'scale-in 0.4s ease-out forwards',
+  			'slide-in-right': 'slide-in-right 0.3s ease-out forwards',
+  			'marquee': 'marquee 32s linear infinite',
+  			'float': 'float 6s ease-in-out infinite'
   		}
   	}
   },
   plugins: [require("tailwindcss-animate")],
 }
+

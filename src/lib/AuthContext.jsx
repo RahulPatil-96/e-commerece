@@ -2,8 +2,13 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/api/apiClient';
 
-const AuthContext = createContext();
+/** @typedef {{ user: any, isAuthenticated: boolean, isLoadingAuth: boolean, isLoadingPublicSettings: boolean, authError: any, authChecked: boolean, login: (email: string, password: string) => Promise<any>, register: (data: any) => Promise<any>, logout: () => Promise<void>, navigateToLogin: () => void, checkUserAuth: () => Promise<void>, checkAppState: () => Promise<void> }} AuthContextValue */
+/** @type {React.Context<AuthContextValue | null>} */
+const AuthContext = createContext(/** @type {AuthContextValue | null} */ (null));
 
+/**
+ * @param {{ children: React.ReactNode }} props
+ */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -48,13 +53,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (/** @type {string} */ email, /** @type {string} */ password) => {
     const res = await apiClient.auth.loginViaEmailPassword(email, password);
     await checkUserAuth();
     return res;
   }, [checkUserAuth]);
 
-  const register = useCallback(async (data) => {
+  const register = useCallback(async (/** @type {{ email: string, password: string }} */ data) => {
     const res = await apiClient.auth.register(data);
     await checkUserAuth();
     return res;

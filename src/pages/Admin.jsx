@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, Mail, Users, Palette, FolderTree, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Mail, Users, Palette, FolderTree, Ticket, ArrowLeft } from 'lucide-react';
 import AdminOverview from '@/components/admin/AdminOverview';
 import ProductManager from '@/components/admin/ProductManager';
 import OrdersManager from '@/components/admin/OrdersManager';
@@ -9,12 +9,14 @@ import UsersManager from '@/components/admin/UsersManager';
 import CustomizationRulesManager from '@/components/admin/CustomizationRulesManager';
 import CategoryManager from '@/components/admin/CategoryManager';
 import SiteContentManager from '@/components/admin/SiteContentManager';
+import CouponManager from '@/components/admin/CouponManager';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'products', label: 'Products', icon: Package },
   { id: 'categories', label: 'Categories', icon: FolderTree },
   { id: 'orders', label: 'Orders', icon: ShoppingCart },
+  { id: 'coupons', label: 'Coupons', icon: Ticket },
   { id: 'inquiries', label: 'B2B Inquiries', icon: Mail },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'customization', label: 'Customization', icon: Palette },
@@ -56,6 +58,7 @@ export default function Admin() {
         {tab === 'products' && <ProductManager />}
         {tab === 'categories' && <CategoryManager />}
         {tab === 'orders' && <OrdersManager />}
+        {tab === 'coupons' && <CouponManager />}
         {tab === 'inquiries' && <InquiriesManager />}
         {tab === 'users' && <UsersManager />}
       {tab === 'customization' && <CustomizationRulesManager />}

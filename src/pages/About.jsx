@@ -47,7 +47,7 @@ export default function About() {
               From a tiny studio in Indiranagar to thousands of desks across India, we've stayed true to one belief — the things you write with should make you want to write more.
             </p>
           </div>
-          <div className="aspect-[4/5] rounded-sm overflow-hidden bg-secondary">
+          <div className="aspect-[4/5] rounded-3xl overflow-hidden bg-secondary shadow-card">
             <Image src="https://images.unsplash.com/photo-1517842645767-c639042777db?w=700&q=80" alt="Studio" className="w-full h-full object-cover" fittingType="fill" />
           </div>
         </div>
@@ -63,7 +63,7 @@ export default function About() {
             </div>
           ) : (
             stats.map((s, i) => (
-              <div key={i}>
+              <div key={i} className="bg-primary-foreground/5 border border-primary-foreground/10 rounded-2xl p-6 shadow-inner">
                 <p className="font-display text-4xl md:text-5xl font-medium text-accent">{s.num}</p>
                 <p className="text-sm text-primary-foreground/70 mt-1">{s.label}</p>
               </div>
@@ -90,8 +90,8 @@ export default function About() {
             </div>
           ) : (
             values.map((v, i) => (
-              <div key={i} className="bg-card border border-border rounded-sm p-8 space-y-4">
-                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+              <div key={i} className="bg-card border border-border/70 rounded-2xl p-8 space-y-4 shadow-soft hover:shadow-card hover:-translate-y-1 transition-all duration-300">
+                <div className="w-12 h-12 rounded-xl bg-accent-soft flex items-center justify-center">
                   {(() => { const Icon = v.icon; return <Icon className="w-6 h-6 text-accent" />; })()}
                 </div>
                 <h3 className="font-display text-xl font-medium">{v.title}</h3>
@@ -104,10 +104,10 @@ export default function About() {
 
       {/* CTA */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 md:pb-28">
-        <div className="bg-card border border-border rounded-sm p-10 md:p-16 text-center">
+        <div className="bg-card border border-border/70 rounded-3xl p-10 md:p-16 text-center shadow-card">
           <h2 className="font-display text-3xl md:text-4xl font-medium mb-4">Ready to find your perfect notebook?</h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">Explore our full collection of thoughtfully crafted stationery.</p>
-          <Link to="/shop" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-7 py-3.5 rounded-full text-sm font-medium hover:bg-accent transition-colors group">
+          <Link to="/shop" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-7 py-3.5 rounded-full text-sm font-medium hover:bg-accent transition-colors group shadow-md">
             Shop Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -115,3 +115,4 @@ export default function About() {
     </div>
   );
 }
+

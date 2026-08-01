@@ -27,19 +27,19 @@ export default function Breadcrumbs() {
           {idx === 0 ? (
             <Link
               to={crumb.href}
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-secondary hover:text-foreground transition-colors"
             >
-              <Home className="w-4 h-4" />
+              <Home className="w-3.5 h-3.5" />
             </Link>
           ) : (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-border" />
               {idx === breadcrumbs.length - 1 ? (
-                <span className="text-foreground font-medium">{crumb.label}</span>
+                <span className="text-foreground font-medium bg-secondary px-3 py-1 rounded-full">{crumb.label}</span>
               ) : (
                 <Link
                   to={crumb.href}
-                  className="hover:text-foreground transition-colors"
+                  className="px-2.5 py-1 rounded-full hover:bg-secondary hover:text-foreground transition-colors"
                 >
                   {crumb.label}
                 </Link>
@@ -51,3 +51,4 @@ export default function Breadcrumbs() {
     </nav>
   );
 }
+

@@ -29,7 +29,7 @@ export default function GDPRBanner() {
           <h3 className="font-semibold text-foreground mb-1">Privacy & Cookies</h3>
           <p className="text-sm text-muted-foreground">
             We use cookies and similar technologies to enhance your experience, analyze traffic, and personalize content.
-            <a href="/privacy" className="text-accent hover:underline ml-1">
+            <a href="/privacy-policy" className="text-accent hover:underline ml-1">
               Learn more
             </a>
           </p>

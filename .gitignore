@@ -1,6 +1,10 @@
 #env
 .env
 
+# Debug / search results
+searchresults*.txt
+TypecheckResult.txt
+
 # Logs
 /logs
 *.log

@@ -42,7 +42,7 @@ export default function CategoryManager() {
       name: cat.name || '',
       description: cat.description || '',
       image_url: cat.image_url || '',
-      display_order: cat.display_order || '',
+      display_order: cat.display_order != null ? String(cat.display_order) : '',
     });
     setModalOpen(true);
   };

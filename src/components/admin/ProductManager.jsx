@@ -6,6 +6,10 @@ import { Image } from '@/components/ui/image';
 
 const AUDIENCES = ['both', 'retail', 'wholesale'];
 
+/** @typedef {{ id: string | number, name: string, description?: string, long_description?: string, price?: number, wholesale_price?: number, category?: string, audience?: string, image_url?: string, stock?: number, sku?: string, bulk_min_qty?: number, featured?: boolean, tags?: string[], dimensions?: string, material?: string, weight?: string, care_instructions?: string, color?: string, personalizable?: boolean, customization_price?: number, gallery?: string[], [key: string]: any }} Product */
+/** @typedef {{ name: string, description: string, long_description: string, price: string, wholesale_price: string, category: string, audience: string, image_url: string, stock: string, sku: string, bulk_min_qty: number, featured: boolean, tags: string[], dimensions: string, material: string, weight: string, care_instructions: string, color: string, personalizable: boolean, customization_price: string, gallery: string[] }} ProductForm */
+
+/** @type {ProductForm} */
 const EMPTY = {
   name: '', description: '', long_description: '', price: '', wholesale_price: '',
   category: '', audience: 'both', image_url: '', stock: '', sku: '',
@@ -16,16 +20,16 @@ const EMPTY = {
 
 export default function ProductManager() {
   const { toast } = useToast();
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(/** @type {Product[]} */ ([]));
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(EMPTY);
+  const [editing, setEditing] = useState(/** @type {Product | null} */ (null));
+  const [form, setForm] = useState(/** @type {ProductForm} */ (EMPTY));
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState(/** @type {string[]} */ ([]));
   const [newCategoryInput, setNewCategoryInput] = useState('');
 
   const fetchProducts = () => {
@@ -36,7 +40,7 @@ export default function ProductManager() {
     ])
       .then(([data, catList]) => {
         setProducts(Array.isArray(data) ? data : []);
-        const cats = Array.isArray(catList) ? catList.map(c => c.name).filter(Boolean) : [];
+        const cats = Array.isArray(catList) ? catList.map(/** @param {any} c */ (c) => c.name).filter(Boolean) : [];
         setCategoryOptions(cats.length > 0 ? cats : []);
         // Set first category as default if available and form is empty
         if (cats.length > 0 && !form.category) {
@@ -53,14 +57,24 @@ export default function ProductManager() {
   useEffect(fetchProducts, []);
 
   const openAdd = () => { setEditing(null); setForm(EMPTY); setTagInput(''); setModalOpen(true); };
-  const openEdit = (p) => {
+  const openEdit = (/** @type {Product} */ p) => {
     setEditing(p);
-    setForm({ ...EMPTY, ...p, price: p.price || '', wholesale_price: p.wholesale_price || '', stock: p.stock ?? '', bulk_min_qty: p.bulk_min_qty ?? 1, customization_price: p.customization_price ?? '', color: p.color || '', tags: p.tags || [] });
+    setForm({
+      ...EMPTY,
+      ...p,
+      price: p.price != null ? String(p.price) : '',
+      wholesale_price: p.wholesale_price != null ? String(p.wholesale_price) : '',
+      stock: p.stock != null ? String(p.stock) : '',
+      bulk_min_qty: p.bulk_min_qty ?? 1,
+      customization_price: p.customization_price != null ? String(p.customization_price) : '',
+      color: p.color || '',
+      tags: p.tags || [],
+    });
     setTagInput('');
     setModalOpen(true);
   };
 
-  const handleDelete = async (p) => {
+  const handleDelete = async (/** @type {Product} */ p) => {
     if (!window.confirm(`Delete "${p.name}"?`)) return;
     try {
       await apiClient.entities.Product.delete(p.id);
@@ -85,7 +99,7 @@ export default function ProductManager() {
     }
   };
 
-  const removeGalleryImage = (idx) => {
+  const removeGalleryImage = (/** @type {number} */ idx) => {
     setForm({ ...form, gallery: (form.gallery || []).filter((_, i) => i !== idx) });
   };
 
@@ -102,7 +116,7 @@ export default function ProductManager() {
     }
   };
 
-  const handleSave = async (e) => {
+  const handleSave = async (/** @type {React.FormEvent<HTMLFormElement>} */ e) => {
     e.preventDefault();
     setSaving(true);
     if (!form.category) {
@@ -140,7 +154,7 @@ export default function ProductManager() {
     }
   };
 
-  const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = products.filter(/** @param {Product} p */ (p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div>
@@ -241,7 +255,7 @@ export default function ProductManager() {
 
               {/* Gallery Images */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
                   <Upload className="w-3.5 h-3.5" /> Gallery Images
                 </label>
                 <button type="button" onClick={addGalleryImage} className="w-full px-4 py-2.5 border-2 border-dashed border-border rounded-sm text-sm text-muted-foreground hover:bg-secondary/50 transition-colors">
@@ -308,7 +322,7 @@ export default function ProductManager() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Bulk Min Qty</label>
-                  <input type="number" min="1" value={form.bulk_min_qty} onChange={e => setForm({...form, bulk_min_qty: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+                  <input type="number" min="1" value={form.bulk_min_qty} onChange={e => setForm({...form, bulk_min_qty: Number(e.target.value)})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
                 </div>
               </div>
               <div>
@@ -382,3 +396,4 @@ export default function ProductManager() {
     </div>
   );
 }
+

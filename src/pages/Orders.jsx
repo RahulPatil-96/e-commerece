@@ -82,7 +82,7 @@ export default function Orders() {
     }
   };
 
-  const formatDate = (dateStr) => {
+  const formatDate = (/** @type {string | undefined} */ dateStr) => {
     if (!dateStr) return '';
     try {
       return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -141,7 +141,8 @@ export default function Orders() {
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-border">
         <div>
-          <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight">My Orders</h1>
+          <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Account</span>
+          <h1 className="font-display text-4xl md:text-5xl font-light tracking-tight mt-2">My Orders</h1>
           <p className="text-sm text-muted-foreground mt-1">Showing {orders.length} order{orders.length > 1 ? 's' : ''}</p>
         </div>
         <Link to="/shop" className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:underline self-start sm:self-auto">
@@ -151,7 +152,7 @@ export default function Orders() {
 
       <div className="space-y-6">
         {orders.map((order) => (
-          <div key={order.id} className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div key={order.id} className="bg-card border border-border/70 rounded-2xl p-6 shadow-soft hover:shadow-card transition-shadow duration-300">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-border/60">
               <div className="space-y-1">
@@ -180,7 +181,7 @@ export default function Orders() {
               <div className="md:col-span-2 space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Ordered Items</h3>
                 {(order.items || []).map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 bg-secondary/40 p-3 rounded-lg border border-border/40">
+                  <div key={idx} className="flex items-center gap-3 bg-secondary/40 p-3 rounded-xl border border-border/40">
                     <div className="w-12 h-14 bg-secondary rounded overflow-hidden shrink-0">
                       {item.image_url ? (
                         <Image src={item.image_url} alt={item.name} className="w-full h-full object-cover" fittingType="fill" />
@@ -217,7 +218,7 @@ export default function Orders() {
               </div>
 
               {/* Order Info & Delivery details */}
-              <div className="space-y-4 bg-secondary/20 p-4 rounded-lg border border-border/50 text-xs">
+              <div className="space-y-4 bg-secondary/20 p-4 rounded-xl border border-border/50 text-xs">
                 <div>
                   <h4 className="font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-accent" /> Shipping Address

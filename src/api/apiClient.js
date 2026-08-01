@@ -1,9 +1,7 @@
 const getApiBase = () => {
   /** @type {any} */
   const meta = import.meta;
-  /** @type {any} */
-  const proc = typeof process !== 'undefined' ? process : undefined;
-  const envUrl = meta?.env?.VITE_API_URL || proc?.env?.VITE_API_URL;
+  const envUrl = meta?.env?.VITE_API_URL;
   if (!envUrl) return '/api';
   const cleanUrl = String(envUrl).trim().replace(/\/+$/, '');
   return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
@@ -382,6 +380,69 @@ export const apiClient = {
         }
       },
 
+      getMe: async () => {
+        return request('/users/me');
+      },
+
+      updateMe: async (/** @type {JsonObject} */ data) => {
+        return request('/users/me', {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        });
+      },
+
+      changePassword: async (/** @type {JsonObject} */ data) => {
+        return request('/users/me/change-password', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      },
+
+      deleteAccount: async (/** @type {JsonObject} */ data) => {
+        return request('/users/me/delete-account', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      },
+
+      addresses: {
+        list: async () => {
+          try {
+            const res = await request('/users/me/addresses');
+            return Array.isArray(res) ? res : [];
+          } catch (err) {
+            console.warn('apiClient: User.addresses.list failed', err);
+            return [];
+          }
+        },
+
+        create: async (/** @type {JsonObject} */ data) => {
+          return request('/users/me/addresses', {
+            method: 'POST',
+            body: JSON.stringify(data),
+          });
+        },
+
+        update: async (/** @type {string | number} */ id, /** @type {JsonObject} */ data) => {
+          return request(`/users/me/addresses/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+          });
+        },
+
+        setDefault: async (/** @type {string | number} */ id) => {
+          return request(`/users/me/addresses/${id}/default`, {
+            method: 'PUT',
+          });
+        },
+
+        delete: async (/** @type {string | number} */ id) => {
+          return request(`/users/me/addresses/${id}`, {
+            method: 'DELETE',
+          });
+        },
+      },
+
       create: async (/** @type {JsonObject} */ data) => {
         return request('/users', {
           method: 'POST',
@@ -512,6 +573,12 @@ export const apiClient = {
         return request('/reviews', {
           method: 'POST',
           body: JSON.stringify(data),
+        });
+      },
+
+      delete: async (/** @type {string | number} */ id) => {
+        return request(`/reviews/${id}`, {
+          method: 'DELETE',
         });
       },
 

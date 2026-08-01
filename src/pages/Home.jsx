@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Wand2 } from 'lucide-react';
+import { ArrowRight, Sparkles, Wand2, Truck, RotateCcw, ShieldCheck, Heart, Award, Leaf } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import ProductCard from '@/components/ProductCard';
 import GiftFinderCTA from '@/components/GiftFinderCTA';
@@ -53,27 +53,32 @@ export default function Home() {
       {/* Full-screen Hero */}
       <section className="relative h-[92vh] min-h-[600px] overflow-hidden">
         <Image src="https://images.unsplash.com/photo-1517842645767-c639042777db?w=1600&q=80" alt="" className="absolute inset-0 w-full h-full object-cover" fittingType="fill" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/70" />
+        <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4 text-white">
-          <span className="text-xs uppercase tracking-[0.3em] text-white/70 mb-6 animate-fade-up">Stationery · Personalized Gifting · Wholesale</span>
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl font-light leading-[0.95] tracking-tight text-balance max-w-5xl animate-fade-up">
+          <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-white/70 mb-6 animate-fade-up px-4 py-2 rounded-full border border-white/20 bg-white/5 backdrop-blur">
+            <Sparkles className="w-3.5 h-3.5 text-accent" /> Stationery · Personalized Gifting · Wholesale
+          </span>
+          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-light leading-[0.95] tracking-tight text-balance max-w-5xl animate-fade-up">
             Paper that<br />feels like <span className="italic text-accent">home.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 max-w-xl mt-7 font-light animate-fade-up">
             Thoughtfully designed notebooks, pens, and desk essentials — crafted for writers, creators, and businesses alike.
           </p>
           <div className="flex flex-wrap gap-4 justify-center mt-9 animate-fade-up">
-            <Link to="/shop" className="inline-flex items-center gap-2 bg-white text-black px-8 py-4 rounded-full text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-all duration-300 group">
+            <Link to="/shop" className="inline-flex items-center gap-2 bg-white text-black px-8 py-4 rounded-full text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-all duration-300 group shadow-lift">
               Shop Collection <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link to="/gift-builder" className="inline-flex items-center gap-2 border border-white/40 text-white px-8 py-4 rounded-full text-sm font-medium hover:bg-white/10 transition-all duration-300">
+            <Link to="/gift-builder" className="inline-flex items-center gap-2 border border-white/40 bg-white/5 backdrop-blur text-white px-8 py-4 rounded-full text-sm font-medium hover:bg-white/15 transition-all duration-300">
               <Wand2 className="w-4 h-4" /> Build a Gift Box
             </Link>
           </div>
         </div>
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
           <span className="text-[10px] uppercase tracking-widest text-white/50">Scroll</span>
-          <div className="w-px h-12 bg-white/30" />
+          <div className="w-px h-12 bg-white/30 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-3 bg-accent animate-scroll-dot rounded-full" />
+          </div>
         </div>
       </section>
 
@@ -92,11 +97,13 @@ export default function Home() {
 
       {/* Stats */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {stats.map((s, i) => (
             <Reveal key={i} delay={i * 100}>
-              <p className="font-display text-4xl md:text-5xl font-light text-accent">{s.value}</p>
-              <p className="text-sm text-muted-foreground mt-2">{s.label}</p>
+              <div className="bg-card rounded-2xl border border-border/60 p-6 text-center shadow-soft hover:shadow-card hover:-translate-y-1 transition-all duration-300">
+                <p className="font-display text-4xl md:text-5xl font-light text-accent">{s.value}</p>
+                <p className="text-sm text-muted-foreground mt-2">{s.label}</p>
+              </div>
             </Reveal>
           ))}
         </div>
@@ -105,15 +112,17 @@ export default function Home() {
       {/* Bento Collections */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
         <Reveal className="text-center max-w-xl mx-auto mb-14">
-          <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Browse</span>
+          <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-accent bg-accent-soft px-4 py-1.5 rounded-full">
+            <Sparkles className="w-3 h-3" /> Browse
+          </span>
           <h2 className="font-display text-4xl md:text-6xl font-light mt-3 tracking-tight">Shop by Collection</h2>
         </Reveal>
         <div className="grid grid-cols-2 lg:grid-cols-4 auto-rows-[180px] md:auto-rows-[260px] gap-4 md:gap-5">
           {collections.map((c, i) => (
             <Reveal key={i} delay={i * 80} className={c.span || ''}>
-              <Link to={c.path} className="group relative h-full block rounded-2xl overflow-hidden bg-secondary">
+              <Link to={c.path} className="group relative h-full block rounded-3xl overflow-hidden bg-secondary shadow-soft hover:shadow-lift transition-shadow duration-500">
                 <Image src={c.img} alt={c.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" fittingType="fill" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-white">
                   <h3 className="font-display text-lg md:text-2xl font-medium">{c.name}</h3>
                   <p className="text-xs text-white/80 mt-0.5 hidden md:block">{c.desc}</p>
@@ -132,7 +141,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal className="flex items-end justify-between mb-14">
             <div>
-              <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Loved by many</span>
+              <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-accent bg-accent-soft px-4 py-1.5 rounded-full">
+                <Award className="w-3 h-3" /> Loved by many
+              </span>
               <h2 className="font-display text-4xl md:text-5xl font-light mt-3 tracking-tight">Bestsellers</h2>
             </div>
             <Link to="/shop" className="hidden sm:inline-flex items-center gap-2 text-sm font-medium hover:text-accent transition-colors group">
@@ -141,7 +152,7 @@ export default function Home() {
           </Reveal>
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {[...Array(4)].map((_, i) => <div key={i} className="aspect-[4/5] bg-secondary animate-pulse rounded-sm" />)}
+              {[...Array(4)].map((_, i) => <div key={i} className="aspect-[4/5] bg-secondary animate-pulse rounded-2xl" />)}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -154,9 +165,12 @@ export default function Home() {
       {/* Full-bleed craftsmanship parallax */}
       <section className="relative h-[70vh] min-h-[500px] overflow-hidden flex items-center justify-center">
         <Image src="https://images.unsplash.com/photo-1519682337058-a94d519337bc?w=1600&q=80" alt="" className="absolute inset-0 w-full h-full object-cover" fittingType="fill" />
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-transparent" />
         <Reveal className="relative z-10 text-center px-4 text-white max-w-2xl">
-          <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Craftsmanship</span>
+          <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-accent bg-white/10 border border-white/20 px-4 py-1.5 rounded-full backdrop-blur">
+            <Heart className="w-3 h-3" /> Craftsmanship
+          </span>
           <h2 className="font-display text-4xl md:text-6xl font-light leading-tight tracking-tight mt-4 text-balance">
             Every detail,<br />considered.
           </h2>
@@ -170,7 +184,9 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
         <Reveal className="flex items-end justify-between mb-14">
           <div>
-            <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Fresh off the press</span>
+            <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-accent bg-accent-soft px-4 py-1.5 rounded-full">
+              <Sparkles className="w-3 h-3" /> Fresh off the press
+            </span>
             <h2 className="font-display text-4xl md:text-5xl font-light mt-3 tracking-tight">New Arrivals</h2>
           </div>
           <Link to="/shop" className="hidden sm:inline-flex items-center gap-2 text-sm font-medium hover:text-accent transition-colors group">
@@ -179,7 +195,7 @@ export default function Home() {
         </Reveal>
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {[...Array(4)].map((_, i) => <div key={i} className="aspect-[4/5] bg-secondary animate-pulse rounded-sm" />)}
+            {[...Array(4)].map((_, i) => <div key={i} className="aspect-[4/5] bg-secondary animate-pulse rounded-2xl" />)}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -189,11 +205,12 @@ export default function Home() {
       </section>
 
       {/* Gift Finder */}
-      <GiftFinderCTA />
+      {/* <GiftFinderCTA /> */}
 
       {/* B2B callout */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 md:pb-28">
-        <Reveal className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground">
+        <Reveal className="relative overflow-hidden rounded-3xl bg-primary text-primary-foreground shadow-lift">
+          <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
           <div className="grid md:grid-cols-2 items-center">
             <div className="p-10 md:p-16 space-y-5">
               <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">For Businesses</span>
@@ -204,7 +221,7 @@ export default function Home() {
                 Outfit your entire team with branded stationery. Enjoy wholesale pricing, custom branding, and dedicated account support — whether you need 50 notebooks or 5,000.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link to="/b2b" className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-7 py-3.5 rounded-full text-sm font-medium hover:bg-accent/90 transition-colors group">
+                <Link to="/b2b" className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-7 py-3.5 rounded-full text-sm font-medium hover:bg-accent/90 transition-colors group shadow-glow">
                   Shop Wholesale <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
                 <Link to="/b2b" className="inline-flex items-center gap-2 border border-primary-foreground/30 px-7 py-3.5 rounded-full text-sm font-medium hover:bg-primary-foreground/10 transition-colors">
@@ -223,12 +240,14 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 md:pb-28">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <Reveal>
-            <div className="aspect-[4/5] rounded-3xl overflow-hidden bg-secondary">
+            <div className="aspect-[4/5] rounded-3xl overflow-hidden bg-secondary shadow-card">
               <Image src="https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=700&q=80" alt="Craft" className="w-full h-full object-cover" fittingType="fill" />
             </div>
           </Reveal>
           <Reveal delay={150} className="space-y-5">
-            <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Our Story</span>
+            <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-accent bg-accent-soft px-4 py-1.5 rounded-full">
+              <Heart className="w-3 h-3" /> Our Story
+            </span>
             <h2 className="font-display text-4xl md:text-5xl font-light leading-tight tracking-tight">
               Made by people<br />who love paper.
             </h2>
@@ -249,20 +268,27 @@ export default function Home() {
       <section className="bg-card/50 py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal className="text-center max-w-xl mx-auto mb-14">
-            <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Reviews</span>
+            <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-accent bg-accent-soft px-4 py-1.5 rounded-full">
+              <Sparkles className="w-3 h-3" /> Reviews
+            </span>
             <h2 className="font-display text-4xl md:text-5xl font-light mt-3 tracking-tight">What people say</h2>
           </Reveal>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
               <Reveal key={i} delay={i * 100}>
-                <div className="bg-background border border-border rounded-2xl p-7 space-y-4 h-full">
+                <div className="bg-background border border-border/60 rounded-2xl p-7 space-y-4 h-full shadow-soft hover:shadow-card hover:-translate-y-1 transition-all duration-300">
                   <div className="flex gap-0.5 text-accent">
                     {[...Array(5)].map((_, j) => <Sparkles key={j} className="w-4 h-4 fill-accent" />)}
                   </div>
                   <p className="text-sm leading-relaxed text-foreground/80">"{t.text}"</p>
-                  <div>
-                    <p className="font-medium text-sm">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-[hsl(27_87%_60%)] flex items-center justify-center text-white text-sm font-semibold">
+                      {(t.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{t.role}</p>
+                    </div>
                   </div>
                 </div>
               </Reveal>
@@ -272,16 +298,20 @@ export default function Home() {
       </section>
 
       {/* Newsletter */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      {/* <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <Reveal className="text-center max-w-lg mx-auto space-y-4">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-[hsl(27_87%_60%)] shadow-glow mb-2">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
           <h2 className="font-display text-3xl md:text-4xl font-light tracking-tight">Stay in the loop</h2>
           <p className="text-muted-foreground font-light">New collections, restocks, and exclusive offers — delivered monthly.</p>
           <form className="flex gap-2 max-w-sm mx-auto pt-2" onSubmit={(e) => e.preventDefault()}>
-            <input type="email" placeholder="your@email.com" className="flex-1 px-4 py-3 rounded-full bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+            <input type="email" placeholder="your@email.com" className="flex-1 px-4 py-3 rounded-full bg-card border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent shadow-soft" />
             <button className="bg-primary text-primary-foreground px-6 py-3 rounded-full text-sm font-medium hover:bg-accent transition-colors">Subscribe</button>
           </form>
         </Reveal>
-      </section>
+      </section> */}
     </div>
   );
 }
+

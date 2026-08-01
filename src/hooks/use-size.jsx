@@ -1,7 +1,14 @@
 import * as React from "react"
 
+/**
+ * Measures the rendered size of an element referenced by `ref`, updating on resize.
+ * @param {React.RefObject<HTMLElement | null>} ref
+ * @returns {{ width: number, height: number } | null}
+ */
 export function useSize(ref) {
-  const [size, setSize] = React.useState(null)
+  const [size, setSize] = React.useState(
+    /** @type {{ width: number, height: number } | null} */ (null)
+  )
 
   // useLayoutEffect (not useEffect): the initial measurement must land before
   // the browser paints, so consumers can render their real content on the

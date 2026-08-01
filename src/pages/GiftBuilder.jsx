@@ -122,7 +122,7 @@ export default function GiftBuilder() {
               onClick={() => setOccasion(occ)}
               className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 occasion === occ
-                  ? 'bg-primary text-primary-foreground shadow-lg scale-105'
+                  ? 'bg-primary text-primary-foreground shadow-md scale-105'
                   : 'bg-card border border-border text-foreground/70 hover:border-foreground/30 hover:scale-105'
               }`}
             >
@@ -154,7 +154,7 @@ export default function GiftBuilder() {
                       key={p.id}
                       onClick={() => toggleItem(p)}
                       className={`group relative text-left rounded-2xl overflow-hidden bg-card transition-all duration-500 ${
-                        sel ? 'ring-2 ring-accent shadow-xl scale-[1.02]' : 'ring-1 ring-border hover:shadow-lg hover:scale-[1.02]'
+                        sel ? 'ring-2 ring-accent shadow-lift scale-[1.02]' : 'ring-1 ring-border shadow-soft hover:shadow-card hover:scale-[1.02]'
                       }`}
                     >
                       <div className="aspect-square overflow-hidden bg-secondary">
@@ -181,7 +181,7 @@ export default function GiftBuilder() {
 
           {/* Preview panel */}
           <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-24 rounded-3xl bg-card ring-1 ring-border overflow-hidden shadow-sm">
+            <div className="lg:sticky lg:top-24 rounded-3xl bg-card ring-1 ring-border overflow-hidden shadow-card">
               {/* Box header */}
               <div className="p-6 bg-gradient-to-br from-primary to-primary/90 text-primary-foreground">
                 <div className="flex items-center gap-2 mb-1">

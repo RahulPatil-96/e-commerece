@@ -269,6 +269,199 @@ router.post('/me/delete-account', requireAuth, async (req, res) => {
 });
 
 // ============================================================================
+// SAVED ADDRESSES ENDPOINTS (authenticated users)
+// ============================================================================
+
+const addressSchema = z.object({
+  label: z.string().max(100).optional(),
+  full_name: z.string().min(1, 'Full name is required'),
+  phone: z.string().regex(/^\d{10}$/, 'Phone must be 10 digits'),
+  address: z.string().min(1, 'Address is required'),
+  city: z.string().min(1, 'City is required'),
+  state: z.string().min(1, 'State is required'),
+  pincode: z.string().regex(/^\d{6}$/, 'Pincode must be 6 digits'),
+  is_default: z.boolean().optional(),
+});
+
+function formatAddress(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    label: row.label || 'Home',
+    full_name: row.full_name || '',
+    phone: row.phone || '',
+    address: row.address || '',
+    city: row.city || '',
+    state: row.state || '',
+    pincode: row.pincode || '',
+    is_default: Boolean(row.is_default),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+// GET /api/users/me/addresses — List current user's saved addresses
+router.get('/me/addresses', requireAuth, async (req, res) => {
+  try {
+    const result = await query(
+      'SELECT * FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC',
+      [req.user.id]
+    );
+    return res.json(result.rows.map(formatAddress));
+  } catch (error) {
+    logger.error('Fetch addresses error:', { error: error.message, stack: error.stack });
+    res.status(500).json({ message: 'Failed to fetch addresses' });
+  }
+});
+
+// POST /api/users/me/addresses — Create a new saved address
+router.post('/me/addresses', requireAuth, async (req, res) => {
+  try {
+    const data = addressSchema.parse(req.body);
+    const {
+      label = 'Home',
+      full_name,
+      phone,
+      address,
+      city,
+      state,
+      pincode,
+      is_default = false,
+    } = data;
+
+    // If this is set as default, clear other defaults for this user
+    if (is_default) {
+      await query('UPDATE addresses SET is_default = false WHERE user_id = $1', [req.user.id]);
+    } else {
+      // If user has no addresses yet, make the first one default
+      const countResult = await query('SELECT COUNT(*)::int AS count FROM addresses WHERE user_id = $1', [req.user.id]);
+      const count = countResult.rows[0]?.count || 0;
+      if (count === 0) {
+        // this will become the default
+        // handled below
+      }
+    }
+
+    const result = await query(
+      `INSERT INTO addresses (user_id, label, full_name, phone, address, city, state, pincode, is_default)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [req.user.id, label, full_name, phone, address, city, state, pincode, is_default]
+    );
+
+    const newAddress = result.rows[0];
+    // If this is the first address, make it default
+    if (!is_default) {
+      const countResult = await query('SELECT COUNT(*)::int AS count FROM addresses WHERE user_id = $1', [req.user.id]);
+      const count = countResult.rows[0]?.count || 0;
+      if (count === 1) {
+        await query('UPDATE addresses SET is_default = true WHERE id = $1', [newAddress.id]);
+        newAddress.is_default = true;
+      }
+    }
+
+    return res.status(201).json(formatAddress(newAddress));
+  } catch (error) {
+    logger.error('Create address error:', { error: error.message, stack: error.stack });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid address', errors: error.errors });
+    }
+    res.status(500).json({ message: 'Failed to save address' });
+  }
+});
+
+// PUT /api/users/me/addresses/:id — Update a saved address
+router.put('/me/addresses/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = addressSchema.partial().parse(req.body);
+
+    // Verify ownership
+    const existing = await query('SELECT * FROM addresses WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+
+    let sql = 'UPDATE addresses SET updated_at = CURRENT_TIMESTAMP';
+    const params = [];
+    const fields = ['label', 'full_name', 'phone', 'address', 'city', 'state', 'pincode', 'is_default'];
+    for (const field of fields) {
+      if (data[field] !== undefined) {
+        params.push(data[field]);
+        sql += `, ${field} = $${params.length}`;
+      }
+    }
+    params.push(id);
+    sql += ` WHERE id = $${params.length} RETURNING *`;
+
+    // If setting as default, unset others
+    if (data.is_default) {
+      await query('UPDATE addresses SET is_default = false WHERE user_id = $1', [req.user.id]);
+    }
+
+    const result = await query(sql, params);
+    return res.json(formatAddress(result.rows[0]));
+  } catch (error) {
+    logger.error('Update address error:', { error: error.message, stack: error.stack });
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid address', errors: error.errors });
+    }
+    res.status(500).json({ message: 'Failed to update address' });
+  }
+});
+
+// PUT /api/users/me/addresses/:id/default — Set an address as default
+router.put('/me/addresses/:id/default', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await query('SELECT id FROM addresses WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+
+    await query('UPDATE addresses SET is_default = false WHERE user_id = $1', [req.user.id]);
+    await query('UPDATE addresses SET is_default = true WHERE id = $1', [id]);
+
+    const result = await query('SELECT * FROM addresses WHERE id = $1', [id]);
+    return res.json(formatAddress(result.rows[0]));
+  } catch (error) {
+    logger.error('Set default address error:', { error: error.message, stack: error.stack });
+    res.status(500).json({ message: 'Failed to set default address' });
+  }
+});
+
+// DELETE /api/users/me/addresses/:id — Delete a saved address
+router.delete('/me/addresses/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await query('SELECT * FROM addresses WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+
+    const wasDefault = existing.rows[0].is_default;
+    await query('DELETE FROM addresses WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+
+    // If we deleted the default, promote the most recent remaining address
+    if (wasDefault) {
+      const remaining = await query(
+        'SELECT id FROM addresses WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
+        [req.user.id]
+      );
+      if (remaining.rows.length > 0) {
+        await query('UPDATE addresses SET is_default = true WHERE id = $1', [remaining.rows[0].id]);
+      }
+    }
+
+    return res.json({ success: true, message: 'Address deleted' });
+  } catch (error) {
+    logger.error('Delete address error:', { error: error.message, stack: error.stack });
+    res.status(500).json({ message: 'Failed to delete address' });
+  }
+});
+
+// ============================================================================
 // WISHLIST ENDPOINTS
 // ============================================================================
 

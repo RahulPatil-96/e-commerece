@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Star, Minus, Plus, ShoppingBag, ArrowLeft, Truck, RotateCcw, ShieldCheck, Heart, Share2, Wand2 } from 'lucide-react';
+import { Star, Minus, Plus, ShoppingBag, ArrowLeft, Truck, RotateCcw, ShieldCheck, Heart, Share2 } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useCart } from '@/lib/cartContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -113,7 +113,7 @@ export default function ProductDetail() {
       <div className="grid md:grid-cols-2 gap-8 md:gap-14">
         {/* Gallery */}
         <div>
-          <div className="relative aspect-[4/5] rounded-sm overflow-hidden bg-secondary">
+          <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-secondary shadow-card">
             <Image src={gallery[activeImage]} alt={product.name} className="w-full h-full object-cover" fittingType="fill" />
             {product.personalizable && customization.name && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -132,7 +132,7 @@ export default function ProductDetail() {
                 <button
                   key={i}
                   onClick={() => setActiveImage(i)}
-                  className={`w-16 h-20 rounded-sm overflow-hidden border-2 transition-all ${activeImage === i ? 'border-accent' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  className={`w-16 h-20 rounded-xl overflow-hidden border-2 transition-all shadow-soft ${activeImage === i ? 'border-accent ring-2 ring-accent/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
                 >
                   <Image src={img} alt="" className="w-full h-full object-cover" fittingType="fill" />
                 </button>
@@ -263,14 +263,14 @@ export default function ProductDetail() {
               { icon: RotateCcw, label: '30-day returns' },
               { icon: ShieldCheck, label: 'Secure checkout' },
             ].map((b, i) => (
-              <div key={i} className="text-center space-y-1.5">
-                <b.icon className="w-5 h-5 text-accent mx-auto" />
+              <div key={i} className="text-center space-y-2 bg-card border border-border/60 rounded-2xl p-4 shadow-soft hover:shadow-card hover:-translate-y-0.5 transition-all duration-300">
+                <div className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center mx-auto">
+                  <b.icon className="w-5 h-5 text-accent" />
+                </div>
                 <p className="text-xs text-muted-foreground">{b.label}</p>
               </div>
             ))}
           </div>
-
-          <p className="text-xs text-muted-foreground">SKU: {product.sku || '—'}</p>
         </div>
       </div>
 

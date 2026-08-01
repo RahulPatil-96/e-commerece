@@ -139,6 +139,35 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE 
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS state VARCHAR(100);
 
 -- ----------------------------------------------------------------------------
+-- 4b. USER ADDRESSES TABLE (saved shipping addresses)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS addresses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    label VARCHAR(100) NOT NULL DEFAULT 'Home',
+    full_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    address TEXT NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    pincode VARCHAR(20) NOT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS label VARCHAR(100) DEFAULT 'Home';
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) NOT NULL DEFAULT '';
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS phone VARCHAR(50) NOT NULL DEFAULT '';
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE addresses ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
+CREATE INDEX IF NOT EXISTS addresses_user_idx ON addresses (user_id);
+
+DROP TRIGGER IF EXISTS set_updated_at_addresses ON addresses;
+CREATE TRIGGER set_updated_at_addresses BEFORE UPDATE ON addresses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ----------------------------------------------------------------------------
 -- 5. EMAIL VERIFICATIONS TABLE
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS email_verifications (

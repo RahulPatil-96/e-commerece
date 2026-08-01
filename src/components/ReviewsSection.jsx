@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/use-toast';
  * @property {string} created_at
  * @property {string} [first_name]
  * @property {string} [last_name]
+ * @property {string} [email]
  */
 
 /**
@@ -60,7 +61,7 @@ export default function ReviewsSection({ productId }) {
       .finally(() => setLoading(false));
   }, [productId, sort]);
 
-  const handleSubmitReview = async (e) => {
+  const handleSubmitReview = async (/** @type {React.FormEvent<HTMLFormElement>} */ e) => {
     e.preventDefault();
     setFormError('');
     setSubmitting(true);
@@ -83,17 +84,20 @@ export default function ReviewsSection({ productId }) {
     }
   };
 
-  const handleDeleteReview = async (reviewId) => {
+  const handleDeleteReview = async (/** @type {string | number} */ reviewId) => {
     try {
       await apiClient.entities.Review.delete(reviewId);
       setReviews(prev => prev.filter(r => r.id !== reviewId));
       toast({ title: 'Review deleted' });
     } catch (error) {
-      toast({ title: 'Failed to delete review', description: error.message });
+      toast({
+        title: 'Failed to delete review',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   };
 
-const handleMarkHelpful = async (reviewId) => {
+const handleMarkHelpful = async (/** @type {string | number} */ reviewId) => {
     try {
       await apiClient.entities.Review.helpful(reviewId);
       setReviews(prev => prev.map(r =>
@@ -104,7 +108,7 @@ const handleMarkHelpful = async (reviewId) => {
     }
   };
 
-  const formatDate = (dateStr) => {
+  const formatDate = (/** @type {string} */ dateStr) => {
     if (!dateStr) return '';
     try {
       return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -115,7 +119,11 @@ const handleMarkHelpful = async (reviewId) => {
     }
   };
 
-  const renderStars = (rating = 0, interactive = false, onChange = () => {}) => {
+  const renderStars = (
+    /** @type {number} */ rating = 0,
+    /** @type {boolean} */ interactive = false,
+    /** @type {(rating: number) => void} */ onChange = () => {}
+  ) => {
     return (
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map(star => (

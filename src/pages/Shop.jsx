@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, X, Search, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, X, Search, Check, ChevronLeft, ChevronRight, PackageSearch } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useCart } from '@/lib/cartContext';
 import ProductCard from '@/components/ProductCard';
@@ -176,7 +176,7 @@ export default function Shop() {
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`block w-full text-left px-3 py-2 rounded-sm text-sm transition-colors ${activeCategory === cat ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary text-foreground/80'}`}
+              className={`block w-full text-left px-3.5 py-2.5 rounded-xl text-sm transition-all ${activeCategory === cat ? 'bg-primary text-primary-foreground shadow-md' : 'hover:bg-secondary text-foreground/80'}`}
             >
               {cat}
             </button>
@@ -194,7 +194,7 @@ export default function Shop() {
             value={priceRange.min}
             onChange={(e) => setPriceRange(p => ({ ...p, min: e.target.value }))}
             placeholder="Min"
-            className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full px-3 py-2.5 rounded-full bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <span className="text-muted-foreground text-xs">—</span>
           <input
@@ -203,7 +203,7 @@ export default function Shop() {
             value={priceRange.max}
             onChange={(e) => setPriceRange(p => ({ ...p, max: e.target.value }))}
             placeholder="Max"
-            className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full px-3 py-2.5 rounded-full bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <div className="flex flex-wrap gap-1.5 mt-2.5">
@@ -234,7 +234,7 @@ export default function Shop() {
                 onClick={() => toggleMaterial(mat)}
                 className="flex items-center gap-2.5 w-full text-left group"
               >
-                <span className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${selectedMaterials.includes(mat) ? 'bg-accent border-accent' : 'border-border group-hover:border-accent'}`}>
+                <span className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all shrink-0 ${selectedMaterials.includes(mat) ? 'bg-accent border-accent' : 'border-border group-hover:border-accent'}`}>
                   {selectedMaterials.includes(mat) && <Check className="w-3 h-3 text-accent-foreground" />}
                 </span>
                 <span className="text-sm text-foreground/80 group-hover:text-foreground transition-colors">{mat}</span>
@@ -273,22 +273,41 @@ export default function Shop() {
       <PageMeta title="Shop" description="Browse the full Arihant stationery collection with filters for category, price, material, and color." />
       {/* Header */}
       <div className="mb-10">
-        <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-accent">Catalogue</span>
+        <span className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-accent bg-accent-soft px-4 py-1.5 rounded-full">
+          <Search className="w-3 h-3" /> Catalogue
+        </span>
         <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-light mt-3 tracking-tight">
           {activeCategory === 'All' ? 'All Products' : activeCategory}
         </h1>
         <p className="text-muted-foreground mt-3 text-base font-light">Discover stationery crafted with intention.</p>
-        <div className={`mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium ${mode === 'wholesale' ? 'bg-accent/10 text-accent' : 'bg-secondary text-muted-foreground'}`}>
+        <div className={`mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium ${mode === 'wholesale' ? 'bg-accent text-accent-foreground shadow-glow' : 'bg-secondary text-muted-foreground'}`}>
           Shopping in {mode === 'wholesale' ? 'Wholesale' : 'Retail'} mode
           {mode === 'wholesale' && ' · bulk pricing active'}
         </div>
       </div>
 
+      {/* Category pills (mobile-friendly) */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 lg:hidden">
+        {['All', ...allCategories].map(cat => (
+          <button
+            key={cat}
+            onClick={() => setCategory(cat)}
+            className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all ${activeCategory === cat ? 'bg-primary text-primary-foreground shadow-md' : 'bg-card border border-border text-foreground/70'}`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <div className="flex gap-8">
         {/* Sidebar - desktop */}
-        <aside className="hidden md:block w-56 shrink-0">
-          <div className="sticky top-24">
-            <FilterPanel />
+        <aside className="hidden md:block w-60 shrink-0">
+          <div className="sticky top-28">
+            <div className="max-h-[calc(100vh-9rem)] overflow-y-auto overscroll-contain pr-2 -mr-2 thin-scrollbar">
+              <div className="bg-card rounded-2xl border border-border/60 p-5 shadow-soft">
+                <FilterPanel />
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -303,7 +322,7 @@ export default function Shop() {
                 value={search}
                 onChange={(e) => updateSearch(e.target.value)}
                 placeholder="Search by name, category, or tag..."
-                className="w-full pl-10 pr-10 py-2.5 rounded-full bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all"
+                className="w-full pl-10 pr-10 py-2.5 rounded-full bg-card border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all shadow-soft"
               />
               {search && (
                 <button onClick={() => updateSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
@@ -314,7 +333,7 @@ export default function Shop() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowFilters(true)}
-                className="md:hidden inline-flex items-center gap-2 text-sm font-medium border border-border px-4 py-2 rounded-full"
+                className="md:hidden inline-flex items-center gap-2 text-sm font-medium border border-border px-4 py-2 rounded-full bg-card shadow-soft"
               >
                 <SlidersHorizontal className="w-4 h-4" /> Filters
                 {activeFilterCount > 0 && <span className="bg-accent text-accent-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center">{activeFilterCount}</span>}
@@ -325,7 +344,7 @@ export default function Shop() {
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
-                  className="text-sm border border-border bg-card rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                  className="text-sm border border-border/60 bg-card rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer shadow-soft"
                 >
                   <option value="newest">Newest</option>
                   <option value="featured">Featured</option>
@@ -370,10 +389,11 @@ export default function Shop() {
           {/* Grid */}
           {loading ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {[...Array(6)].map((_, i) => <div key={i} className="aspect-[4/5] bg-secondary animate-pulse rounded-sm" />)}
+              {[...Array(6)].map((_, i) => <div key={i} className="aspect-[4/5] bg-secondary animate-pulse rounded-2xl" />)}
             </div>
           ) : sorted.length === 0 ? (
-            <div className="text-center py-20">
+            <div className="text-center py-20 bg-card rounded-2xl border border-border/60 shadow-soft">
+              <PackageSearch className="w-14 h-14 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground">{search ? `No products match "${search}".` : 'No products found with these filters.'}</p>
               {activeFilterCount > 0 && (
                 <button onClick={clearAllFilters} className="mt-4 text-sm text-accent hover:underline">Clear all filters</button>
@@ -399,9 +419,9 @@ export default function Shop() {
                             setItemsPerPage(n);
                             setCurrentPage(1);
                           }}
-                          className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                             itemsPerPage === n
-                              ? 'bg-primary text-primary-foreground'
+                              ? 'bg-primary text-primary-foreground shadow-md'
                               : 'border border-border hover:bg-secondary'
                           }`}
                         >
@@ -421,7 +441,7 @@ export default function Shop() {
                       <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 rounded-sm border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+                        className="p-2 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
@@ -441,9 +461,9 @@ export default function Shop() {
                                 {prev && p - prev > 1 && <span className="px-1 text-muted-foreground">…</span>}
                                 <button
                                   onClick={() => setCurrentPage(p)}
-                                  className={`w-8 h-8 rounded-sm text-sm font-medium transition-colors ${
+                                  className={`w-9 h-9 rounded-full text-sm font-medium transition-colors ${
                                     currentPage === p
-                                      ? 'bg-primary text-primary-foreground'
+                                      ? 'bg-primary text-primary-foreground shadow-md'
                                       : 'border border-border hover:bg-secondary'
                                   }`}
                                 >
@@ -457,7 +477,7 @@ export default function Shop() {
                       <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-2 rounded-sm border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+                        className="p-2 rounded-full border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -473,16 +493,16 @@ export default function Shop() {
       {/* Mobile filter drawer */}
       {showFilters && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowFilters(false)} />
-          <div className="absolute right-0 top-0 bottom-0 w-72 bg-background p-6 overflow-y-auto animate-fade-in">
+          <div className="absolute inset-0 bg-black/40 animate-fade-in" onClick={() => setShowFilters(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-80 bg-background p-6 overflow-y-auto animate-slide-in-right">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-display text-xl font-medium">Filters</h3>
-              <button onClick={() => setShowFilters(false)}><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowFilters(false)} className="p-2 rounded-full hover:bg-secondary"><X className="w-5 h-5" /></button>
             </div>
             <FilterPanel />
             <button
               onClick={() => setShowFilters(false)}
-              className="w-full mt-6 bg-primary text-primary-foreground py-3 rounded-full text-sm font-medium"
+              className="w-full mt-6 bg-primary text-primary-foreground py-3 rounded-full text-sm font-medium shadow-md"
             >
               Show {sorted.length} results
             </button>
@@ -492,3 +512,4 @@ export default function Shop() {
     </div>
   );
 }
+

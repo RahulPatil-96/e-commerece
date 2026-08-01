@@ -2,6 +2,55 @@ import * as React from "react"
 import { useSize } from "@/hooks/use-size"
 import { cn } from "@/lib/utils"
 
+/**
+ * @typedef {React.ImgHTMLAttributes<HTMLImageElement> & {
+ *   src?: string,
+ *   fittingType?: 'fill' | 'fit',
+ *   originWidth?: number,
+ *   originHeight?: number,
+ *   focalPointX?: number,
+ *   focalPointY?: number,
+ *   quality?: number,
+ * }} ImageProps
+ */
+
+/**
+ * @typedef {{
+ *   baseUrl: string,
+ *   filename: string,
+ * }} WixMediaUrl
+ */
+
+/**
+ * @typedef {{
+ *   width: number,
+ *   height?: number,
+ *   crop?: boolean,
+ *   focalPoint?: { x: number, y: number },
+ *   quality?: number,
+ * }} TransformOptions
+ */
+
+/**
+ * @typedef {{
+ *   aspectRatio?: string,
+ *   className?: string,
+ *   style?: React.CSSProperties,
+ *   children?: React.ReactNode,
+ * }} ImageWrapperProps
+ */
+
+/**
+ * @typedef {Omit<ImageProps, 'src' | 'fittingType' | 'quality' | 'focalPointX' | 'focalPointY' | 'originWidth' | 'originHeight'> & {
+ *   parsed: WixMediaUrl,
+ *   fittingType: 'fill' | 'fit',
+ *   focalPoint?: { x: number, y: number },
+ *   quality: number,
+ *   aspectRatio?: string,
+ *   onLoad?: React.ReactEventHandler<HTMLImageElement>,
+ * }} ResponsiveImageProps
+ */
+
 const FALLBACK_IMAGE_URL =
   "https://static.wixstatic.com/media/12d367_4f26ccd17f8f4e3a8958306ea08c2332~mv2.png"
 
@@ -22,6 +71,8 @@ const MAX_DIMENSION = 6000
  * Detects a Wix Media URL and strips any existing /v1/ transform so it can be
  * rebuilt. Returns null for other hosts and for SVGs (vectors — a raster
  * transform only downgrades them).
+ * @param {string} src
+ * @returns {WixMediaUrl | null}
  */
 function parseWixMediaUrl(src) {
   try {
@@ -37,15 +88,22 @@ function parseWixMediaUrl(src) {
   }
 }
 
+/** @param {number} n @returns {number} */
 const clampDim = (n) => Math.min(Math.max(Math.round(n), 1), MAX_DIMENSION)
+/** @param {number} n @returns {number} */
 const clamp01 = (n) => Math.min(1, Math.max(0, n))
 
 /**
  * Builds a Wix Media transform URL:
  * `<base>/v1/{fill|fit}/w_,h_[,fp_x_y|al_c],q_,usm_…/<name>.webp`
  * GIFs keep their extension (WebP output could drop animation).
+ * @param {WixMediaUrl} parsed
+ * @param {TransformOptions} options
+ * @returns {string}
  */
-function buildTransformUrl({ baseUrl, filename }, { width, height, crop, focalPoint, quality }) {
+function buildTransformUrl(parsed, options) {
+  const { baseUrl, filename } = parsed
+  const { width, height, crop, focalPoint, quality } = options
   const params = [`w_${clampDim(width)}`, `h_${clampDim(height || width)}`]
   if (crop) {
     params.push(
@@ -61,6 +119,11 @@ function buildTransformUrl({ baseUrl, filename }, { width, height, crop, focalPo
   return `${baseUrl}/v1/${crop ? "fill" : "fit"}/${params.join(",")}/${outputName}`
 }
 
+/**
+ * @param {WixMediaUrl} parsed
+ * @param {TransformOptions} options
+ * @returns {string}
+ */
 function buildSrcSet(parsed, options) {
   return DEVICE_PIXEL_RATIOS.map(
     (dpr) =>
@@ -72,25 +135,31 @@ function buildSrcSet(parsed, options) {
   ).join(", ")
 }
 
-const ImageWrapper = React.forwardRef(({ aspectRatio, className, style, children }, ref) => (
-  <span
-    ref={ref}
-    className={cn("inline-block relative", className)}
-    style={{ aspectRatio, ...style }}
-  >
-    {children}
-  </span>
-))
+const ImageWrapper = React.forwardRef(
+  /** @type {React.ForwardRefRenderFunction<HTMLSpanElement, ImageWrapperProps>} */
+  (({ aspectRatio, className, style, children }, ref) => (
+    <span
+      ref={ref}
+      className={cn("inline-block relative", className)}
+      style={{ aspectRatio, ...style }}
+    >
+      {children}
+    </span>
+  ))
+)
 ImageWrapper.displayName = "ImageWrapper"
 
 const ResponsiveImage = React.forwardRef(
-  ({ parsed, fittingType, focalPoint, quality, className, style, aspectRatio, onLoad, ...props }, parentRef) => {
+  /** @type {React.ForwardRefRenderFunction<HTMLImageElement, ResponsiveImageProps>} */
+  (({ parsed, fittingType, focalPoint, quality, className, style, aspectRatio, onLoad, ...props }, parentRef) => {
+    /** @type {React.RefObject<HTMLSpanElement>} */
     const wrapperRef = React.useRef(null)
+    /** @type {React.RefObject<HTMLImageElement>} */
     const imgRef = React.useRef(null)
     const size = useSize(wrapperRef)
     const [loaded, setLoaded] = React.useState(false)
 
-    React.useImperativeHandle(parentRef, () => imgRef.current)
+    React.useImperativeHandle(parentRef, () => (/** @type {HTMLImageElement} */ (imgRef.current)))
 
     // Reset the blur-up when the underlying image changes.
     React.useEffect(() => {
@@ -161,7 +230,7 @@ const ResponsiveImage = React.forwardRef(
         )}
       </ImageWrapper>
     )
-  }
+  })
 )
 ResponsiveImage.displayName = "ResponsiveImage"
 
@@ -172,16 +241,6 @@ ResponsiveImage.displayName = "ResponsiveImage"
  * server-side, optionally anchored at a focal point. Other URLs render as a
  * plain <img>. Failed loads swap to a fallback image.
  */
-/** @typedef {React.ImgHTMLAttributes<HTMLImageElement> & {
-  src?: string,
-  fittingType?: 'fill' | 'fit',
-  originWidth?: number,
-  originHeight?: number,
-  focalPointX?: number,
-  focalPointY?: number,
-  quality?: number,
-}} ImageProps */
-
 const Image = React.forwardRef(
   (/** @type {ImageProps} */ {
       src,
@@ -216,7 +275,7 @@ const Image = React.forwardRef(
 
     // The fallback renders as a plain <img> so a broken upload can't cascade
     // into a second (transformed) failing request.
-    const parsed = imgSrc === FALLBACK_IMAGE_URL ? null : parseWixMediaUrl(imgSrc)
+    const parsed = imgSrc === FALLBACK_IMAGE_URL ? null : parseWixMediaUrl(/** @type {string} */ (imgSrc))
 
     if (!parsed) {
       const isErrorUrl = imgSrc === FALLBACK_IMAGE_URL
@@ -250,3 +309,4 @@ const Image = React.forwardRef(
 Image.displayName = "Image"
 
 export { Image }
+

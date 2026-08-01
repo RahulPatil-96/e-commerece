@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 /**
  * Reorder button for order history pages.
  * Adds all items from a previous order to the cart.
- * @param {{ items: Array<{ id: string | number, name: string, qty: number, price: number, customization?: any }>, orderType?: string }} props
+ * @param {{ items: Array<{ id: string | number, product_id?: string | number, name: string, qty: number, price: number, image_url?: string, customization?: any }>, orderType?: string }} props
  */
 export default function ReorderButton({ items, orderType = 'retail' }) {
   const [reordering, setReordering] = useState(false);
