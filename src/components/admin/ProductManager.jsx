@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Search, Upload } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Image } from '@/components/ui/image';
 
-const CATEGORIES = ['Notebooks', 'Pens', 'Desk', 'Art', 'Planners'];
 const AUDIENCES = ['both', 'retail', 'wholesale'];
 
 const EMPTY = {
   name: '', description: '', long_description: '', price: '', wholesale_price: '',
-  category: 'Notebooks', audience: 'both', image_url: '', stock: '', sku: '',
+  category: '', audience: 'both', image_url: '', stock: '', sku: '',
   bulk_min_qty: 1, featured: false, tags: [],
   dimensions: '', material: '', weight: '', care_instructions: '', color: '',
-  personalizable: false, customization_price: ''
+  personalizable: false, customization_price: '', gallery: []
 };
 
 export default function ProductManager() {
@@ -26,11 +25,28 @@ export default function ProductManager() {
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+
   const fetchProducts = () => {
     setLoading(true);
-    apiClient.entities.Product.list('-created_date', 200)
-      .then((data) => setProducts(Array.isArray(data) ? data : []))
-      .catch(() => setProducts([]))
+    Promise.all([
+      apiClient.entities.Product.list('-created_date', 200),
+      apiClient.entities.Category.list().catch(() => []),
+    ])
+      .then(([data, catList]) => {
+        setProducts(Array.isArray(data) ? data : []);
+        const cats = Array.isArray(catList) ? catList.map(c => c.name).filter(Boolean) : [];
+        setCategoryOptions(cats.length > 0 ? cats : []);
+        // Set first category as default if available and form is empty
+        if (cats.length > 0 && !form.category) {
+          setForm(f => ({ ...f, category: cats[0] }));
+        }
+      })
+      .catch(() => {
+        setProducts([]);
+        setCategoryOptions([]);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -46,21 +62,62 @@ export default function ProductManager() {
 
   const handleDelete = async (p) => {
     if (!window.confirm(`Delete "${p.name}"?`)) return;
-    await apiClient.entities.Product.delete(p.id);
-    toast({ title: 'Product deleted' });
-    fetchProducts();
+    try {
+      await apiClient.entities.Product.delete(p.id);
+      toast({ title: 'Product deleted' });
+      fetchProducts();
+    } catch (err) {
+      toast({ title: 'Failed to delete product', variant: 'destructive' });
+    }
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !form.tags.includes(tagInput.trim())) {
+      setForm({ ...form, tags: [...form.tags, tagInput.trim()] });
+      setTagInput('');
+    }
+  };
+
+  const addGalleryImage = () => {
+    const url = prompt('Enter image URL:');
+    if (url?.trim()) {
+      setForm({ ...form, gallery: [...(form.gallery || []), url.trim()] });
+    }
+  };
+
+  const removeGalleryImage = (idx) => {
+    setForm({ ...form, gallery: (form.gallery || []).filter((_, i) => i !== idx) });
+  };
+
+  const addNewCategory = async () => {
+    if (!newCategoryInput.trim()) return;
+    try {
+      await apiClient.entities.Category.create({ name: newCategoryInput.trim() });
+      setCategoryOptions([...categoryOptions, newCategoryInput.trim()]);
+      setForm({ ...form, category: newCategoryInput.trim() });
+      setNewCategoryInput('');
+      toast({ title: 'Category created' });
+    } catch (err) {
+      toast({ title: 'Failed to create category', variant: 'destructive' });
+    }
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    if (!form.category) {
+      toast({ title: 'Please select or create a category', variant: 'destructive' });
+      setSaving(false);
+      return;
+    }
     const payload = {
       ...form,
       price: Number(form.price),
-      wholesale_price: form.wholesale_price ? Number(form.wholesale_price) : undefined,
+      wholesale_price: form.wholesale_price !== '' && form.wholesale_price !== null && form.wholesale_price !== undefined ? Number(form.wholesale_price) : null,
       stock: Number(form.stock) || 0,
       bulk_min_qty: Number(form.bulk_min_qty) || 1,
       customization_price: form.personalizable ? Number(form.customization_price) || 0 : 0,
+      gallery: form.gallery || [],
       slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
     };
     try {
@@ -73,15 +130,13 @@ export default function ProductManager() {
       }
       setModalOpen(false);
       fetchProducts();
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : 'Failed to save product',
+        variant: 'destructive',
+      });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const addTag = () => {
-    if (tagInput.trim() && !form.tags.includes(tagInput.trim())) {
-      setForm({ ...form, tags: [...form.tags, tagInput.trim()] });
-      setTagInput('');
     }
   };
 
@@ -183,6 +238,34 @@ export default function ProductManager() {
                 <input required value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} placeholder="https://..." className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
                 {form.image_url && <div className="mt-2 w-20 h-24 rounded-sm overflow-hidden bg-secondary"><Image src={form.image_url} alt="preview" className="w-full h-full object-cover" fittingType="fill" /></div>}
               </div>
+
+              {/* Gallery Images */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
+                  <Upload className="w-3.5 h-3.5" /> Gallery Images
+                </label>
+                <button type="button" onClick={addGalleryImage} className="w-full px-4 py-2.5 border-2 border-dashed border-border rounded-sm text-sm text-muted-foreground hover:bg-secondary/50 transition-colors">
+                  Add Image URL to Gallery
+                </button>
+                {(form.gallery || []).length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-3">
+                    {form.gallery.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <div className="w-full aspect-square rounded-sm overflow-hidden bg-secondary">
+                          <Image src={img} alt={`gallery-${i}`} className="w-full h-full object-cover" fittingType="fill" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeGalleryImage(i)}
+                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                        >
+                          <X className="w-4 h-4 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Price (₹) *</label>
@@ -195,10 +278,17 @@ export default function ProductManager() {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category</label>
-                  <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="w-full px-3 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category *</label>
+                  <div className="flex gap-2">
+                    <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="flex-1 px-3 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+                      <option value="">Select category...</option>
+                      {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <input value={newCategoryInput} onChange={e => setNewCategoryInput(e.target.value)} placeholder="New category..." className="flex-1 px-3 py-1.5 rounded-sm bg-card border border-border text-xs focus:outline-none focus:ring-2 focus:ring-accent" />
+                    <button type="button" onClick={addNewCategory} className="px-2 py-1.5 bg-secondary rounded-sm text-xs">Add</button>
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Audience</label>

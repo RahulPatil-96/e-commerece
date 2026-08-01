@@ -3,6 +3,7 @@ import { Star, Plus } from 'lucide-react';
 import { useCart } from '@/lib/cartContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Image } from '@/components/ui/image';
+import FeaturedBadge from '@/components/FeaturedBadge';
 
 export default function ProductCard({ product }) {
   const { addItem, mode } = useCart();
@@ -35,11 +36,7 @@ export default function ProductCard({ product }) {
         >
           <Plus className="w-4 h-4" />
         </button>
-        {product.featured && (
-          <span className="absolute top-3 left-3 bg-accent text-accent-foreground text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full">
-            Bestseller
-          </span>
-        )}
+{product.featured && <FeaturedBadge />}
       </div>
 
       <div className="mt-4 space-y-1.5">

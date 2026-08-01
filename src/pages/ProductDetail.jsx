@@ -6,6 +6,7 @@ import { useCart } from '@/lib/cartContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Image } from '@/components/ui/image';
 import CustomizationStudio from '@/components/CustomizationStudio';
+import ReviewsSection from '@/components/ReviewsSection';
 import PageMeta from '@/components/PageMeta';
 
 /** @typedef {{ id?: string | number, name?: string, slug?: string, description?: string, long_description?: string, price?: number, wholesale_price?: number, category?: string, image_url?: string, gallery?: string[], personalizable?: boolean, customization_price?: number, bulk_min_qty?: number, tags?: string[], rating?: number, dimensions?: string, material?: string, weight?: string, care_instructions?: string, sku?: string, [key: string]: any }} Product */
@@ -273,7 +274,7 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* Related */}
+{/* Related */}
       {related.length > 0 && (
         <div className="mt-20 md:mt-28">
           <h2 className="font-display text-2xl md:text-3xl font-medium mb-8">You may also like</h2>
@@ -290,6 +291,9 @@ export default function ProductDetail() {
           </div>
         </div>
       )}
+
+      {/* Reviews Section */}
+      {product && product.id && <ReviewsSection productId={Number(product.id)} />}
     </div>
   );
 }

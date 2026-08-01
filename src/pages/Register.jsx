@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/api/apiClient";
+import { useAuth } from "@/lib/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +16,20 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { register: authRegister } = useAuth();
+  const { toast } = useToast();
+
+  // Read Google OAuth error from URL query param (set by OAuthCallback redirect)
+  React.useEffect(() => {
+    const oauthError = searchParams.get("oauth_error");
+    if (oauthError) {
+      setError(oauthError);
+      navigate("/register", { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const handleSubmit = async (/** @type {React.FormEvent<HTMLFormElement>} */ e) => {
     e.preventDefault();
@@ -25,10 +40,11 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      const result = await apiClient.auth.register({ email, password });
-      if (result?.access_token) {
-        apiClient.auth.setToken(result.access_token);
-      }
+      await authRegister({ email, password });
+      toast({
+        title: "Account created!",
+        description: "Welcome to Arihant Stationery.",
+      });
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -37,8 +53,16 @@ export default function Register() {
     }
   };
 
-  const handleGoogle = () => {
-    apiClient.auth.loginWithProvider("google", "/");
+  const handleGoogle = async () => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      await apiClient.auth.loginWithProvider("google", "/");
+      // Full-page redirect to Google — no further action needed here
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -59,9 +83,10 @@ export default function Register() {
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
         onClick={handleGoogle}
+        disabled={googleLoading}
       >
         <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
+        {googleLoading ? "Redirecting to Google..." : "Continue with Google"}
       </Button>
 
       <div className="relative mb-6">

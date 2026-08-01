@@ -48,6 +48,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const login = useCallback(async (email, password) => {
+    const res = await apiClient.auth.loginViaEmailPassword(email, password);
+    await checkUserAuth();
+    return res;
+  }, [checkUserAuth]);
+
+  const register = useCallback(async (data) => {
+    const res = await apiClient.auth.register(data);
+    await checkUserAuth();
+    return res;
+  }, [checkUserAuth]);
+
   const logout = useCallback(async () => {
     await apiClient.auth.logout();
     setUser(null);
@@ -68,6 +80,8 @@ export const AuthProvider = ({ children }) => {
       isLoadingPublicSettings,
       authError,
       authChecked,
+      login,
+      register,
       logout,
       navigateToLogin,
       checkUserAuth,

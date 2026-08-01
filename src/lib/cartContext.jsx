@@ -38,16 +38,28 @@ export function CartProvider({ children }) {
   }, [mode]);
 
   const addItem = useCallback((product, qty = 1, customization = null) => {
+    // Enforce MOQ check for wholesale
+    if (mode === 'wholesale' && product.bulk_min_qty && qty < product.bulk_min_qty) {
+      throw new Error(`Minimum order quantity for this product is ${product.bulk_min_qty} units`);
+    }
+
     setItems(prev => {
       const lineId = customization
         ? `${product.id}__${customization.name}__${customization.font}__${customization.color}`
         : product.id;
       const existing = prev.find(i => i.lineId === lineId);
+      
       if (existing) {
+        const newQty = existing.qty + qty;
+        // Re-check MOQ after update
+        if (mode === 'wholesale' && product.bulk_min_qty && newQty < product.bulk_min_qty) {
+          throw new Error(`Minimum order quantity for this product is ${product.bulk_min_qty} units`);
+        }
         return prev.map(i =>
-          i.lineId === lineId ? { ...i, qty: i.qty + qty } : i
+          i.lineId === lineId ? { ...i, qty: newQty } : i
         );
       }
+
       return [...prev, {
         lineId,
         id: product.id,
@@ -62,7 +74,7 @@ export function CartProvider({ children }) {
         qty
       }];
     });
-  }, []);
+  }, [mode]);
 
   const removeItem = useCallback((lineId) => {
     setItems(prev => prev.filter(i => i.lineId !== lineId));
@@ -70,8 +82,16 @@ export function CartProvider({ children }) {
 
   const updateQty = useCallback((lineId, qty) => {
     if (qty < 1) return;
-    setItems(prev => prev.map(i => i.lineId === lineId ? { ...i, qty } : i));
-  }, []);
+    
+    setItems(prev => {
+      const item = prev.find(i => i.lineId === lineId);
+      // Enforce MOQ check for wholesale when updating quantity
+      if (mode === 'wholesale' && item && item.bulk_min_qty && qty < item.bulk_min_qty) {
+        throw new Error(`Minimum order quantity for this product is ${item.bulk_min_qty} units`);
+      }
+      return prev.map(i => i.lineId === lineId ? { ...i, qty } : i);
+    });
+  }, [mode]);
 
   const clearCart = useCallback(() => setItems([]), []);
 

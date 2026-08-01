@@ -1,4 +1,4 @@
-import { query, isDbConnected, getMemoryStore } from './db.js';
+import { query } from './db.js';
 import bcrypt from 'bcryptjs';
 
 // ============================================================
@@ -308,20 +308,6 @@ export const FEATURED_COLLECTIONS_CONFIG = [
 // ============================================================
 
 export async function seedDatabase() {
-  if (!isDbConnected()) {
-    console.log('🌱 Populating mock store with seed data...');
-    const memory = getMemoryStore();
-
-    // Populate memory store from seed data
-    memory.users = [ADMIN_USER];
-    memory.products = PRODUCTS.map(p => ({ ...p }));
-    memory.categories = CATEGORIES.map(c => ({ ...c }));
-    memory.customizationRules = { ...DEFAULT_CUSTOMIZATION_RULES };
-
-    console.log('🎉 Mock store seeded! Default admin created (admin@arihant.com / admin123).');
-    return;
-  }
-
   try {
     // Check if products exist
     const { rows } = await query('SELECT COUNT(*) FROM products');

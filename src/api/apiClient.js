@@ -1,4 +1,15 @@
-const API_BASE = '/api';
+const getApiBase = () => {
+  /** @type {any} */
+  const meta = import.meta;
+  /** @type {any} */
+  const proc = typeof process !== 'undefined' ? process : undefined;
+  const envUrl = meta?.env?.VITE_API_URL || proc?.env?.VITE_API_URL;
+  if (!envUrl) return '/api';
+  const cleanUrl = String(envUrl).trim().replace(/\/+$/, '');
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
+
+const API_BASE = getApiBase();
 
 const TOKEN_KEY = 'arihant_access_token';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
@@ -84,6 +95,15 @@ async function request(
 }
 
 export const apiClient = {
+  newsletter: {
+    subscribe: async (/** @type {string} */ email) => {
+      return request('/newsletter', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    },
+  },
+
   auth: {
     loginViaEmailPassword: async (/** @type {string} */ email, /** @type {string} */ password) => {
       const data = await request('/auth/login', {
@@ -153,9 +173,32 @@ export const apiClient = {
       }
     },
 
-    loginWithProvider: (/** @type {string} */ provider, /** @type {string} */ redirectUrl = '/') => {
-      // Mock OAuth fallback
-      window.location.href = redirectUrl;
+    loginWithProvider: async (/** @type {string} */ provider, /** @type {string} */ redirectUrl = '/') => {
+      // Store the intended redirect URL so the OAuth callback page can return there
+      try {
+        localStorage.setItem('arihant_oauth_redirect', redirectUrl);
+      } catch {
+        // Ignore storage errors
+      }
+
+      if (provider === 'google') {
+        const config = await request('/auth/oauth-config');
+        if (!config?.google?.isConfigured || !config.google.authUrl) {
+          /** @type {RequestError} */
+          const error = new Error('Google sign-in is not configured yet. Please try again later.');
+          error.status = 503;
+          throw error;
+        }
+        // Redirect to the backend OAuth start endpoint (full page navigation)
+        window.location.href = `${API_BASE}${config.google.authUrl}`;
+        return;
+      }
+
+      // Unknown provider — fall back gracefully
+      /** @type {RequestError} */
+      const error = new Error(`Provider "${provider}" is not supported.`);
+      error.status = 400;
+      throw error;
     },
 
     setToken,
@@ -396,6 +439,119 @@ export const apiClient = {
           method: 'PUT',
           body: JSON.stringify(data),
         });
+      },
+    },
+
+    Coupon: {
+      list: async () => {
+        try {
+          const res = await request('/coupons');
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: Coupon.list failed', err);
+          return [];
+        }
+      },
+
+      validate: async (/** @type {string} */ code, /** @type {string} */ mode = 'retail', /** @type {number | undefined} */ subtotal) => {
+        const params = new URLSearchParams();
+        if (mode) params.set('mode', mode);
+        if (subtotal !== undefined) params.set('order_subtotal', String(subtotal));
+        return request(`/coupons/validate/${encodeURIComponent(code)}?${params.toString()}`);
+      },
+
+      apply: async (/** @type {string} */ coupon_code) => {
+        return request('/coupons/apply', {
+          method: 'POST',
+          body: JSON.stringify({ coupon_code }),
+        });
+      },
+
+      create: async (/** @type {JsonObject} */ data) => {
+        return request('/coupons', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      },
+
+      update: async (/** @type {string | number} */ id, /** @type {JsonObject} */ data) => {
+        return request(`/coupons/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        });
+      },
+
+      delete: async (/** @type {string | number} */ id) => {
+        return request(`/coupons/${id}`, {
+          method: 'DELETE',
+        });
+      },
+    },
+
+    Review: {
+      list: async (/** @type {string | number} */ product_id, /** @type {string} */ sort = 'recent') => {
+        try {
+          const res = await request(`/reviews?product_id=${product_id}&sort=${sort}`);
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: Review.list failed', err);
+          return [];
+        }
+      },
+
+      stats: async (/** @type {string | number} */ product_id) => {
+        try {
+          return await request(`/reviews/product/${product_id}/stats`);
+        } catch (err) {
+          console.warn('apiClient: Review.stats failed', err);
+          return { totalReviews: 0, avgRating: 0, distribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 } };
+        }
+      },
+
+      create: async (/** @type {JsonObject} */ data) => {
+        return request('/reviews', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
+      },
+
+      helpful: async (/** @type {string | number} */ id) => {
+        return request(`/reviews/${id}/helpful`, {
+          method: 'PUT',
+        });
+      },
+    },
+
+    Wishlist: {
+      list: async () => {
+        try {
+          const res = await request('/users/wishlist');
+          return Array.isArray(res) ? res : [];
+        } catch (err) {
+          console.warn('apiClient: Wishlist.list failed', err);
+          return [];
+        }
+      },
+
+      add: async (/** @type {string | number} */ product_id) => {
+        return request(`/users/wishlist/${product_id}`, {
+          method: 'POST',
+        });
+      },
+
+      remove: async (/** @type {string | number} */ product_id) => {
+        return request(`/users/wishlist/${product_id}`, {
+          method: 'DELETE',
+        });
+      },
+
+      check: async (/** @type {string | number} */ product_id) => {
+        try {
+          return await request(`/users/wishlist/check/${product_id}`);
+        } catch (err) {
+          console.warn('apiClient: Wishlist.check failed', err);
+          return { in_wishlist: false };
+        }
       },
     },
   },

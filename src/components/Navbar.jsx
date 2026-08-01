@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Search, User, LogOut, Package, LayoutDashboard } from 'lucide-react';
+import { ShoppingBag, Menu, X, User, LogOut, Package, LayoutDashboard } from 'lucide-react';
 import { useCart } from '@/lib/cartContext';
 import { useAuth } from '@/lib/AuthContext';
+import SearchSuggestions from '@/components/SearchSuggestions';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -15,7 +16,6 @@ import {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const { count, mode, setMode } = useCart();
   const { user, isAuthenticated, logout, navigateToLogin } = useAuth();
   const location = useLocation();
@@ -28,15 +28,6 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => setOpen(false), [location.pathname]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-      setOpen(false);
-    }
-  };
 
   const navLinks = [
     { label: 'Shop', path: '/shop' },
@@ -69,16 +60,15 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Desktop search */}
-          <form onSubmit={handleSearch} className="hidden lg:flex items-center relative">
-            <Search className="absolute left-3 w-4 h-4 text-muted-foreground" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="pl-9 pr-4 py-2 w-40 focus:w-56 rounded-full bg-secondary border border-transparent focus:border-accent focus:bg-card text-sm transition-all focus:outline-none"
+          {/* Desktop search with autocomplete suggestions */}
+          <div className="hidden lg:block w-64">
+            <SearchSuggestions
+              onSelect={(product) => {
+                navigate(`/product/${product.id}`);
+                setOpen(false);
+              }}
             />
-          </form>
+          </div>
 
           {/* Right actions */}
           <div className="flex items-center gap-3 md:gap-4">
@@ -128,7 +118,12 @@ export default function Navbar() {
                     <p className="text-sm font-medium truncate">{user.name || 'User'}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/cart')} className="cursor-pointer">
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    My Cart {count > 0 ? `(${count})` : ''}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/orders')} className="cursor-pointer">
                     <Package className="w-4 h-4 mr-2" />
                     My Orders
                   </DropdownMenuItem>
@@ -164,17 +159,14 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden border-t border-border bg-background animate-fade-in">
-          <form onSubmit={handleSearch} className="px-4 pt-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products..."
-                className="w-full pl-9 pr-4 py-2.5 rounded-full bg-secondary text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
-          </form>
+          <div className="px-4 pt-4">
+            <SearchSuggestions
+              onSelect={(product) => {
+                navigate(`/product/${product.id}`);
+                setOpen(false);
+              }}
+            />
+          </div>
           <nav className="px-4 py-4 space-y-1">
             {navLinks.map(link => (
               <Link key={link.path} to={link.path} className="block py-2.5 text-sm font-medium text-foreground/80 hover:text-accent">

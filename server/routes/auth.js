@@ -2,10 +2,11 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { z } from 'zod';
-import { query, isDbConnected, getMemoryStore } from '../db.js';
+import { query } from '../db.js';
 import { sendEmail } from '../utils/email.js';
-
 import logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -13,6 +14,77 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const OTP_EXPIRY_MINUTES = 15;
 const RESET_EXPIRY_MINUTES = 30;
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/google/callback`;
+const googleOAuthConfigured = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+
+// ----------------------------------------------------------------------------
+// GOOGLE OAUTH 2.0 — Passport.js Strategy
+// ----------------------------------------------------------------------------
+if (googleOAuthConfigured) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL: GOOGLE_CALLBACK_URL,
+        scope: ['profile', 'email'],
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const email = profile.emails && profile.emails[0] ? profile.emails[0].value.toLowerCase() : null;
+          if (!email) {
+            return done(new Error('Google account does not have an email address.'));
+          }
+
+          const googleId = String(profile.id);
+          const firstName = profile.name?.givenName || profile.displayName?.split(' ')[0] || '';
+          const lastName = profile.name?.familyName || profile.displayName?.split(' ').slice(1).join(' ') || '';
+          const avatarUrl = profile.photos && profile.photos[0] ? profile.photos[0].value : null;
+
+          // 1) Try to find existing user by google_id
+          let userResult = await query('SELECT * FROM users WHERE google_id = $1', [googleId]);
+          let user = userResult.rows[0];
+
+          if (!user) {
+            // 2) Try to find by email (link Google to existing local account)
+            const emailResult = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+            const existingUser = emailResult.rows[0];
+
+            if (existingUser) {
+              // Link the Google identity to the existing account
+              userResult = await query(
+                `UPDATE users SET google_id = $1, avatar_url = COALESCE($2, avatar_url),
+                   first_name = COALESCE(NULLIF($3, ''), first_name),
+                   last_name = COALESCE(NULLIF($4, ''), last_name),
+                   auth_provider = 'google', is_verified = true, updated_at = CURRENT_TIMESTAMP
+                 WHERE id = $5 RETURNING *`,
+                [googleId, avatarUrl, firstName, lastName, existingUser.id]
+              );
+              user = userResult.rows[0];
+            } else {
+              // 3) Create a brand new account
+              userResult = await query(
+                `INSERT INTO users (email, password_hash, role, is_verified, google_id, first_name, last_name, avatar_url, auth_provider)
+                 VALUES ($1, '', 'user', TRUE, $2, $3, $4, $5, 'google')
+                 RETURNING *`,
+                [email, googleId, firstName, lastName, avatarUrl]
+              );
+              user = userResult.rows[0];
+            }
+          }
+
+          return done(null, user);
+        } catch (err) {
+          logger.error('Google OAuth profile handling error:', { error: err.message, stack: err.stack });
+          return done(err, null);
+        }
+      }
+    )
+  );
+}
 
 const registerSchema = z.object({ email: z.string().email(), password: z.string().min(8) });
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(8) });
@@ -58,15 +130,20 @@ async function sendPasswordResetEmail(email, token) {
   });
 }
 
+async function sendPasswordChangeConfirmationEmail(email) {
+  const message = `Your Arihant account password has been changed successfully. If you did not make this change, please contact support immediately.`;
+  await sendEmail({
+    to: email,
+    subject: 'Password Changed - Arihant Account',
+    text: message,
+    html: `<p>${message}</p><p>If this was not you, please reset your password or contact support.</p>`,
+  });
+}
+
 async function getUserByEmail(email) {
   const normalizedEmail = normalizeEmail(email);
-  if (isDbConnected()) {
-    const { rows } = await query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
-    return rows[0];
-  }
-
-  const memory = getMemoryStore();
-  return memory.users.find((user) => user.email === normalizedEmail);
+  const { rows } = await query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
+  return rows[0];
 }
 
 router.post('/register', async (req, res) => {
@@ -75,38 +152,32 @@ router.post('/register', async (req, res) => {
     const normalizedEmail = normalizeEmail(email);
     const passwordHash = await bcrypt.hash(password, 10);
 
-    if (isDbConnected()) {
-      const existing = await query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
-      if (existing.rows.length > 0) {
-        return res.status(400).json({ message: 'Email already registered' });
-      }
-
-      const userResult = await query(
-        'INSERT INTO users (email, password_hash, role, is_verified) VALUES ($1, $2, $3, TRUE) RETURNING id, email, role',
-        [normalizedEmail, passwordHash, 'user']
-      );
-      const newUser = userResult.rows[0];
-      const token = signToken(newUser);
-      return res.json({ access_token: token, user: { id: newUser.id, email: newUser.email, role: newUser.role } });
-    }
-
-    const memory = getMemoryStore();
-    if (memory.users.some((user) => user.email === normalizedEmail)) {
+    const existing = await query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+    if (existing.rows.length > 0) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    const newUser = {
-      id: memory.users.length + 1,
-      email: normalizedEmail,
-      password_hash: passwordHash,
-      role: 'user',
-      is_verified: true,
-      created_at: new Date().toISOString(),
-    };
-    memory.users.push(newUser);
+    // Create user with is_verified = FALSE (must verify via OTP)
+    const userResult = await query(
+      'INSERT INTO users (email, password_hash, role, is_verified) VALUES ($1, $2, $3, FALSE) RETURNING id, email, role',
+      [normalizedEmail, passwordHash, 'user']
+    );
+    const newUser = userResult.rows[0];
 
-    const token = signToken(newUser);
-    return res.json({ access_token: token, user: { id: newUser.id, email: newUser.email, role: newUser.role } });
+    // Create and send verification OTP
+    const code = createVerificationCode();
+    await query(
+      `INSERT INTO email_verifications (user_id, email, code, expires_at, used)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP + INTERVAL '${OTP_EXPIRY_MINUTES} minutes', false)`,
+      [newUser.id, normalizedEmail, code]
+    );
+
+    await sendVerificationEmail(normalizedEmail, code);
+
+    return res.status(201).json({
+      message: 'Registration successful. Please verify your email with the OTP sent to your inbox.',
+      user: { id: newUser.id, email: newUser.email, role: newUser.role, is_verified: false }
+    });
   } catch (error) {
     logger.error('Register error:', { error: error.message, stack: error.stack });
     res.status(400).json({ message: error.message || 'Registration failed' });
@@ -123,11 +194,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    // Check if email is verified
     if (!user.is_verified) {
-      user.is_verified = true;
-      if (isDbConnected()) {
-        await query('UPDATE users SET is_verified = true WHERE id = $1', [user.id]);
-      }
+      return res.status(403).json({ 
+        message: 'Email not verified. Please check your inbox for the verification code.',
+        needsVerification: true,
+        email: user.email 
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
@@ -148,35 +221,20 @@ router.post('/verify-otp', async (req, res) => {
     const { email, otpCode } = verifyOtpSchema.parse(req.body);
     const normalizedEmail = normalizeEmail(email);
 
-    let verification;
-    if (isDbConnected()) {
-      const result = await query(
-        `SELECT * FROM email_verifications
-         WHERE email = $1 AND code = $2 AND expires_at > CURRENT_TIMESTAMP AND used = false
-         ORDER BY created_at DESC LIMIT 1`,
-        [normalizedEmail, otpCode]
-      );
-      verification = result.rows[0];
-    } else {
-      const memory = getMemoryStore();
-      verification = memory.email_verifications.find((item) => item.email === normalizedEmail && item.code === otpCode && !item.used && new Date(item.expires_at) > new Date());
-    }
+    const result = await query(
+      `SELECT * FROM email_verifications
+       WHERE email = $1 AND code = $2 AND expires_at > CURRENT_TIMESTAMP AND used = false
+       ORDER BY created_at DESC LIMIT 1`,
+      [normalizedEmail, otpCode]
+    );
+    const verification = result.rows[0];
 
     if (!verification) {
       return res.status(400).json({ message: 'Invalid or expired verification code' });
     }
 
-    if (isDbConnected()) {
-      await query('UPDATE users SET is_verified = true WHERE id = $1', [verification.user_id]);
-      await query('UPDATE email_verifications SET used = true WHERE id = $1', [verification.id]);
-    } else {
-      const memory = getMemoryStore();
-      const user = memory.users.find((u) => u.id === verification.user_id);
-      if (user) {
-        user.is_verified = true;
-      }
-      verification.used = true;
-    }
+    await query('UPDATE users SET is_verified = true WHERE id = $1', [verification.user_id]);
+    await query('UPDATE email_verifications SET used = true WHERE id = $1', [verification.id]);
 
     const user = await getUserByEmail(normalizedEmail);
     const token = signToken(user);
@@ -198,26 +256,12 @@ router.post('/resend-otp', async (req, res) => {
 
     const code = createVerificationCode();
 
-    if (isDbConnected()) {
-      await query(
-        `INSERT INTO email_verifications (user_id, email, code, expires_at)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP + INTERVAL '${OTP_EXPIRY_MINUTES} minutes')
-         ON CONFLICT (email) DO UPDATE SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at, used = false`,
-        [user.id, normalizedEmail, code]
-      );
-    } else {
-      const memory = getMemoryStore();
-      memory.email_verifications = memory.email_verifications.filter((entry) => entry.email !== normalizedEmail);
-      memory.email_verifications.push({
-        id: memory.email_verifications.length + 1,
-        user_id: user.id,
-        email: normalizedEmail,
-        code,
-        expires_at: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000).toISOString(),
-        used: false,
-        created_at: new Date().toISOString(),
-      });
-    }
+    await query(
+      `INSERT INTO email_verifications (user_id, email, code, expires_at)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP + INTERVAL '${OTP_EXPIRY_MINUTES} minutes')
+       ON CONFLICT (email) DO UPDATE SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at, used = false`,
+      [user.id, normalizedEmail, code]
+    );
 
     await sendVerificationEmail(normalizedEmail, code);
     return res.json({ success: true, message: 'Verification code sent' });
@@ -236,24 +280,11 @@ router.post('/forgot-password', async (req, res) => {
       const token = createResetToken();
       const expiresAt = new Date(Date.now() + RESET_EXPIRY_MINUTES * 60 * 1000).toISOString();
 
-      if (isDbConnected()) {
-        await query(
-          `INSERT INTO password_resets (user_id, email, token, expires_at, used)
-           VALUES ($1, $2, $3, $4, false)`,
-          [user.id, normalizedEmail, token, expiresAt]
-        );
-      } else {
-        const memory = getMemoryStore();
-        memory.password_resets.push({
-          id: memory.password_resets.length + 1,
-          user_id: user.id,
-          email: normalizedEmail,
-          token,
-          expires_at: expiresAt,
-          used: false,
-          created_at: new Date().toISOString(),
-        });
-      }
+      await query(
+        `INSERT INTO password_resets (user_id, email, token, expires_at, used)
+         VALUES ($1, $2, $3, $4, false)`,
+        [user.id, normalizedEmail, token, expiresAt]
+      );
 
       await sendPasswordResetEmail(normalizedEmail, token);
     }
@@ -268,44 +299,109 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { resetToken, newPassword } = resetPasswordSchema.parse(req.body);
-    let resetEntry;
 
-    if (isDbConnected()) {
-      const result = await query(
-        `SELECT * FROM password_resets
-         WHERE token = $1 AND expires_at > CURRENT_TIMESTAMP AND used = false
-         ORDER BY created_at DESC LIMIT 1`,
-        [resetToken]
-      );
-      resetEntry = result.rows[0];
-    } else {
-      const memory = getMemoryStore();
-      resetEntry = memory.password_resets.find((entry) => entry.token === resetToken && !entry.used && new Date(entry.expires_at) > new Date());
-    }
+    const result = await query(
+      `SELECT * FROM password_resets
+       WHERE token = $1 AND expires_at > CURRENT_TIMESTAMP AND used = false
+       ORDER BY created_at DESC LIMIT 1`,
+      [resetToken]
+    );
+    const resetEntry = result.rows[0];
 
     if (!resetEntry) {
       return res.status(400).json({ message: 'Reset token is invalid or has expired' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    if (isDbConnected()) {
-      await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetEntry.user_id]);
-      await query('UPDATE password_resets SET used = true WHERE id = $1', [resetEntry.id]);
-    } else {
-      const memory = getMemoryStore();
-      const user = memory.users.find((userItem) => userItem.id === resetEntry.user_id);
-      if (user) {
-        user.password_hash = passwordHash;
-      }
-      resetEntry.used = true;
-    }
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetEntry.user_id]);
+    await query('UPDATE password_resets SET used = true WHERE id = $1', [resetEntry.id]);
 
-    return res.json({ success: true, message: 'Password reset successfully' });
+    // Send confirmation email
+    await sendPasswordChangeConfirmationEmail(resetEntry.email);
+
+    return res.json({ success: true, message: 'Password reset successfully. Confirmation email sent.' });
   } catch (error) {
     logger.error('Reset password error:', { error: error.message, stack: error.stack });
     res.status(400).json({ message: error.message || 'Failed to reset password' });
   }
 });
+
+// ----------------------------------------------------------------------------
+// GOOGLE OAUTH ROUTES
+// ----------------------------------------------------------------------------
+
+// GET /api/auth/oauth-config — tells the frontend whether Google OAuth is ready
+router.get('/oauth-config', (req, res) => {
+  res.json({
+    google: {
+      isConfigured: googleOAuthConfigured,
+      authUrl: googleOAuthConfigured ? '/api/auth/google' : null,
+    },
+  });
+});
+
+// GET /api/auth/google — start the Google OAuth consent flow
+router.get(
+  '/google',
+  (req, res, next) => {
+    if (!googleOAuthConfigured) {
+      return res.status(503).json({
+        message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.',
+      });
+    }
+    next();
+  },
+  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+);
+
+// GET /api/auth/google/callback — Google redirects here after consent
+router.get(
+  '/google/callback',
+  (req, res, next) => {
+    if (!googleOAuthConfigured) {
+      return res.status(503).json({
+        message: 'Google OAuth is not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.',
+      });
+    }
+    next();
+  },
+  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?oauth_error=1` }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.redirect(`${FRONTEND_URL}/login?oauth_error=1`);
+      }
+
+      // Always re-fetch the freshest user from DB
+      const freshResult = await query('SELECT * FROM users WHERE id = $1', [user.id]);
+      const freshUser = freshResult.rows[0];
+      if (!freshUser) {
+        return res.redirect(`${FRONTEND_URL}/login?oauth_error=1`);
+      }
+
+      const token = signToken(freshUser);
+
+      // Redirect back to the frontend callback page which stores the token.
+      return res.redirect(
+        `${FRONTEND_URL}/oauth-callback?access_token=${encodeURIComponent(token)}&user=${encodeURIComponent(
+          JSON.stringify({
+            id: freshUser.id,
+            email: freshUser.email,
+            role: freshUser.role || 'user',
+            is_verified: freshUser.is_verified,
+            first_name: freshUser.first_name,
+            last_name: freshUser.last_name,
+            avatar_url: freshUser.avatar_url,
+          })
+        )}`
+      );
+    } catch (error) {
+      logger.error('Google OAuth callback error:', { error: error.message, stack: error.stack });
+      return res.redirect(`${FRONTEND_URL}/login?oauth_error=1`);
+    }
+  }
+);
 
 router.get('/me', async (req, res) => {
   const authHeader = req.headers['authorization'];
@@ -317,7 +413,14 @@ router.get('/me', async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    return res.json({ id: decoded.id, email: decoded.email, role: decoded.role });
+    const result = await query(
+      'SELECT id, email, role, is_verified, first_name, last_name, phone, avatar_url, auth_provider, created_at FROM users WHERE id = $1',
+      [decoded.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(401).json({ message: 'User no longer exists' });
+    }
+    return res.json(result.rows[0]);
   } catch (err) {
     return res.status(401).json({ message: 'Token expired or invalid' });
   }
@@ -328,3 +431,4 @@ router.post('/logout', (req, res) => {
 });
 
 export default router;
+export { googleOAuthConfigured };

@@ -1,6 +1,5 @@
 #env
 .env
-.env.*
 
 # Logs
 /logs
@@ -29,3 +28,4 @@ dist-ssr
 
 .env
 .vite
+*.md

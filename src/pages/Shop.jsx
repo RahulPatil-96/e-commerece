@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, X, Search, Check } from 'lucide-react';
+import { SlidersHorizontal, X, Search, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useCart } from '@/lib/cartContext';
 import ProductCard from '@/components/ProductCard';
@@ -19,6 +19,8 @@ export default function Shop() {
   const [materialOptions, setMaterialOptions] = useState(/** @type {Array<{label: string, match: string[]}>} */([]));
   const [colorSwatches, setColorSwatches] = useState(/** @type {Record<string, string>} */({}));
   const [contentLoading, setContentLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const { mode } = useCart();
 
   const activeCategory = searchParams.get('category') || 'All';
@@ -30,15 +32,19 @@ export default function Shop() {
   }, [colorSwatches]);
 
   useEffect(() => {
-    // Fetch site content from API
-    apiClient.entities.SiteContent.getAll()
-      .then(data => {
-        if (Array.isArray(data.shop_categories)) setAllCategories(data.shop_categories);
-        if (Array.isArray(data.shop_material_options)) setMaterialOptions(data.shop_material_options);
-        if (data.shop_color_swatches) setColorSwatches(data.shop_color_swatches);
-      })
-      .catch(() => {
-        // Fallback to empty — component works with just API data
+    // Fetch site content & categories from API
+    Promise.all([
+      apiClient.entities.SiteContent.getAll().catch(() => ({})),
+      apiClient.entities.Category.list().catch(() => ([])),
+    ])
+      .then(([contentData, categoryList]) => {
+        const catNames = new Set(Array.isArray(contentData.shop_categories) ? contentData.shop_categories : []);
+        if (Array.isArray(categoryList)) {
+          categoryList.forEach(c => { if (c.name) catNames.add(c.name); });
+        }
+        setAllCategories([...catNames]);
+        if (Array.isArray(contentData.shop_material_options)) setMaterialOptions(contentData.shop_material_options);
+        if (contentData.shop_color_swatches) setColorSwatches(contentData.shop_color_swatches);
       })
       .finally(() => setContentLoading(false));
   }, []);
@@ -47,7 +53,7 @@ export default function Shop() {
     setLoading(true);
     const params = {};
     if (activeCategory !== 'All') params.category = activeCategory;
-    apiClient.entities.Product.filter(params, '-created_date', 50)
+    apiClient.entities.Product.filter(params, '-created_date', 200)
       .then(data => {
         const allow = mode === 'wholesale' ? ['wholesale', 'both'] : ['retail', 'both'];
         setProducts(data.filter(/** @param {any} p */ (p) => allow.includes(p.audience || 'both')));
@@ -106,8 +112,20 @@ export default function Shop() {
     if (sort === 'price-low') arr.sort((/** @type {any} */ a, /** @type {any} */ b) => a.price - b.price);
     else if (sort === 'price-high') arr.sort((/** @type {any} */ a, /** @type {any} */ b) => b.price - a.price);
     else if (sort === 'rating') arr.sort((/** @type {any} */ a, /** @type {any} */ b) => (b.rating || 0) - (a.rating || 0));
+    else if (sort === 'featured') arr.sort((/** @type {any} */ a, /** @type {any} */ b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     return arr;
   }, [searched, sort]);
+
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return sorted.slice(start, start + itemsPerPage);
+  }, [sorted, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filters/sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sort, priceRange, selectedMaterials, selectedColors, activeCategory, search]);
 
   const setCategory = (/** @type {string} */ cat) => {
     /** @type {Record<string, string>} */
@@ -310,6 +328,7 @@ export default function Shop() {
                   className="text-sm border border-border bg-card rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
                 >
                   <option value="newest">Newest</option>
+                  <option value="featured">Featured</option>
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
                   <option value="rating">Top Rated</option>
@@ -361,9 +380,92 @@ export default function Shop() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {sorted.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                {paginatedProducts.map(p => <ProductCard key={p.id} product={p} />)}
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="mt-10 border-t border-border pt-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                  {/* Items per page selector */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">Show per page:</span>
+                    <div className="flex gap-2">
+                      {[20, 50, 100].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => {
+                            setItemsPerPage(n);
+                            setCurrentPage(1);
+                          }}
+                          className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${
+                            itemsPerPage === n
+                              ? 'bg-primary text-primary-foreground'
+                              : 'border border-border hover:bg-secondary'
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Page info and pagination */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <span className="text-sm text-muted-foreground text-center sm:text-right">
+                      Page {currentPage} of {totalPages} • {sorted.length} total results
+                    </span>
+                    
+                    <div className="flex items-center gap-2 justify-center sm:justify-end">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-sm border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      <div className="flex gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                          .filter(p => {
+                            if (totalPages <= 7) return true;
+                            if (p === 1 || p === totalPages) return true;
+                            if (p >= currentPage - 1 && p <= currentPage + 1) return true;
+                            return false;
+                          })
+                          .map((p, i, arr) => {
+                            const prev = arr[i - 1];
+                            return (
+                              <div key={p}>
+                                {prev && p - prev > 1 && <span className="px-1 text-muted-foreground">…</span>}
+                                <button
+                                  onClick={() => setCurrentPage(p)}
+                                  className={`w-8 h-8 rounded-sm text-sm font-medium transition-colors ${
+                                    currentPage === p
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'border border-border hover:bg-secondary'
+                                  }`}
+                                >
+                                  {p}
+                                </button>
+                              </div>
+                            );
+                          })}
+                      </div>
+
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-sm border border-border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-secondary transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

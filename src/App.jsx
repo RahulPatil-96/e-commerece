@@ -19,10 +19,15 @@ import B2B from '@/pages/B2B';
 import About from '@/pages/About';
 import Admin from '@/pages/Admin';
 import GiftBuilder from '@/pages/GiftBuilder';
+import Orders from '@/pages/Orders';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import OAuthCallback from '@/pages/OAuthCallback';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
+import Shipping from '@/pages/Shipping';
 
 const MainRoutes = () => {
   const { isLoadingAuth } = useAuth();
@@ -54,6 +59,9 @@ const MainRoutes = () => {
           <Route path="/shop" element={<Shop />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/orders" element={<Orders />} />
+          </Route>
           <Route path="/b2b" element={<B2B />} />
           <Route path="/about" element={<About />} />
           <Route element={<ProtectedRoute requireAdmin />}>
@@ -65,6 +73,10 @@ const MainRoutes = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/oauth-callback" element={<OAuthCallback />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/shipping" element={<Shipping />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

@@ -4,102 +4,52 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-dotenv.config();
-
 const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let pool = null;
-let isPgAvailable = false;
-const isProduction = process.env.NODE_ENV === 'production';
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const connectionString = process.env.DATABASE_URL;
-const forceMemoryStore = process.env.USE_MEMORY_STORE === 'true';
-const allowMemoryFallback = process.env.ALLOW_MEMORY_FALLBACK !== 'false';
 
-// Test if DATABASE_URL is provided and not default placeholder
-const isValidConnectionString = connectionString &&
-  !connectionString.includes('your_password') &&
-  !connectionString.includes('ep-example-123456');
-
-if (!forceMemoryStore && isValidConnectionString) {
-  try {
-    pool = new Pool({
-      connectionString,
-      ssl: connectionString.includes('sslmode=require') || connectionString.includes('neon.tech')
-        ? { rejectUnauthorized: false }
-        : false,
-    });
-    isPgAvailable = true;
-    console.log('Configured Neon PostgreSQL Pool');
-  } catch (err) {
-    console.error('⚠️ Failed to initialize PG Pool:', err.message);
-    if (isProduction || !allowMemoryFallback) {
-      throw err;
-    }
-  }
-} else {
-  if (forceMemoryStore) {
-    console.log('ℹ️ USE_MEMORY_STORE=true. Forcing in-memory store mode.');
-  } else if (!allowMemoryFallback) {
-    if (isProduction) {
-      throw new Error('Production requires a valid DATABASE_URL. Please set DATABASE_URL.');
-    } else {
-      throw new Error('Memory fallback disabled (ALLOW_MEMORY_FALLBACK=false) but no valid DATABASE_URL provided.');
-    }
-  } else {
-    console.log('ℹ️ No valid DATABASE_URL provided. Running with robust mock state layer.');
-  }
+if (!connectionString) {
+  throw new Error('DATABASE_URL is missing in environment variables. Please configure DATABASE_URL in server/.env');
 }
 
+export const pool = new Pool({
+  connectionString,
+  ssl: connectionString.includes('sslmode=require') || connectionString.includes('neon.tech')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
-const memoryStore = {
-  users: [],
-  products: [],
-  categories: [],
-  orders: [],
-  b2b_inquiries: [],
-  newsletter_subscriptions: [],
-  email_verifications: [],
-  password_resets: [],
-  customizationRules: null,
-};
+pool.on('error', (err) => {
+  console.error('Unexpected PostgreSQL Pool Error:', err.message);
+});
 
-// Initialize schema on PostgreSQL if connected
+// Initialize schema on PostgreSQL
+// Run only once on first startup or when schema needs to be reset
 export async function initDb() {
-  if (isPgAvailable && pool) {
-    try {
-      const schemaPath = path.join(__dirname, 'schema.sql');
-      const sql = fs.readFileSync(schemaPath, 'utf8');
-      await pool.query(sql);
-      console.log('✅ PostgreSQL Schema Initialized Successfully');
-    } catch (err) {
-      console.warn('⚠️ Error initializing PostgreSQL schema:', err.message);
-      isPgAvailable = false;
-    }
+  try {
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    const sql = fs.readFileSync(schemaPath, 'utf8');
+
+    // Execute the whole schema as a single query.
+    // IMPORTANT: The schema contains dollar-quoted strings ($$ ... $$) in trigger
+    // functions and JSON seeds. Splitting on ';' would corrupt those strings and
+    // cause "unterminated dollar-quoted string" errors. node-postgres runs a
+    // no-parameter query through the simple query protocol, which correctly
+    // handles multiple statements and dollar-quoting.
+    await pool.query(sql);
+
+    console.log('✅ PostgreSQL Schema Initialized Successfully');
+  } catch (err) {
+    console.error('❌ Failed to initialize PostgreSQL schema:', err.message);
+    throw err;
   }
 }
 
-export function getMemoryStore() {
-  return memoryStore;
-}
+export const query = (text, params = []) => pool.query(text, params);
 
-export function isDbConnected() {
-  if (forceMemoryStore) return false;
-  return isPgAvailable;
-}
-
-export const query = async (text, params = []) => {
-  if (isPgAvailable && pool) {
-    try {
-      return await pool.query(text, params);
-    } catch (err) {
-      console.error('Database query error:', err);
-      throw err;
-    }
-  }
-  throw new Error('Database pool unavailable');
-};
-
-export default { query, initDb, getMemoryStore, isDbConnected };
+export default { query, initDb, pool };

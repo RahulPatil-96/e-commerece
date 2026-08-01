@@ -59,9 +59,9 @@ export default function Footer() {
         <div className="mt-14 pt-8 border-t border-primary-foreground/15 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-primary-foreground/50">© {new Date().getFullYear()} Arihant & Co. All rights reserved.</p>
           <div className="flex gap-5 text-xs text-primary-foreground/50">
-            <a href="#" className="hover:text-accent transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-accent transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-accent transition-colors">Shipping</a>
+            <Link to="/privacy-policy" className="hover:text-accent transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-accent transition-colors">Terms of Service</Link>
+            <Link to="/shipping" className="hover:text-accent transition-colors">Shipping</Link>
           </div>
         </div>
       </div>

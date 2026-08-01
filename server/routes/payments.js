@@ -60,7 +60,7 @@ router.post('/create-payment-intent', async (req, res) => {
 });
 
 // POST /api/payments/webhook
-router.post('/webhook', express.json({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
@@ -70,13 +70,17 @@ router.post('/webhook', express.json({ type: 'application/json' }), async (req, 
     }
 
     const signature = req.get('x-razorpay-signature');
-    const body = JSON.stringify(req.body);
+    // Use the raw body that was captured before JSON parsing
+    const body = req.rawBody || JSON.stringify(req.body);
 
     const crypto = await import('crypto');
     const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
 
     if (expectedSignature !== signature) {
-      logger.error('Webhook signature verification failed');
+      logger.error('Webhook signature verification failed', { 
+        received: signature, 
+        expected: expectedSignature 
+      });
       return res.status(400).json({ message: 'Webhook signature verification failed' });
     }
 

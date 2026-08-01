@@ -1,5 +1,5 @@
 import express from 'express';
-import { query, isDbConnected } from '../db.js';
+import { query } from '../db.js';
 import {
   HOME_COLLECTIONS,
   HOME_MARQUEE_ITEMS,
@@ -20,7 +20,6 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-// Static fallback data map (same keys as site_content table)
 const STATIC_CONTENT = {
   home_collections: HOME_COLLECTIONS,
   home_marquee_items: HOME_MARQUEE_ITEMS,
@@ -39,46 +38,36 @@ const STATIC_CONTENT = {
 
 /**
  * GET /api/site-content
- * Returns all site content (UI config data) as a key-value map.
- * When DB is not connected, returns the static fallback data.
+ * Returns all site content (UI config data) as a key-value map from PostgreSQL.
  */
 router.get('/', async (req, res) => {
   try {
-    if (isDbConnected()) {
-      const result = await query('SELECT key, value FROM site_content');
-      const content = {};
-      for (const row of result.rows) {
-        content[row.key] = row.value;
-      }
-      return res.json(content);
+    const result = await query('SELECT key, value FROM site_content');
+    const content = {};
+    for (const row of result.rows) {
+      content[row.key] = row.value;
     }
-
-    // Fallback: return static data from seed.js
-    return res.json(STATIC_CONTENT);
+    if (Object.keys(content).length === 0) {
+      return res.json(STATIC_CONTENT);
+    }
+    return res.json(content);
   } catch (error) {
     logger.error('Fetch site content error:', { error: error.message, stack: error.stack });
-    // Fallback on error
     return res.json(STATIC_CONTENT);
   }
 });
 
 /**
  * GET /api/site-content/:key
- * Returns a specific site content entry by key.
+ * Returns a specific site content entry by key from PostgreSQL.
  */
 router.get('/:key', async (req, res) => {
   try {
     const { key } = req.params;
-
-    if (isDbConnected()) {
-      const result = await query('SELECT value FROM site_content WHERE key = $1', [key]);
-      if (result.rows.length > 0) {
-        return res.json(result.rows[0].value);
-      }
-      return res.status(404).json({ message: `Site content key '${key}' not found` });
+    const result = await query('SELECT value FROM site_content WHERE key = $1', [key]);
+    if (result.rows.length > 0) {
+      return res.json(result.rows[0].value);
     }
-
-    // Fallback
     if (key in STATIC_CONTENT) {
       return res.json(STATIC_CONTENT[key]);
     }
@@ -91,25 +80,22 @@ router.get('/:key', async (req, res) => {
 
 /**
  * PUT /api/site-content/:key
- * Updates a specific site content entry by key.
+ * Updates a specific site content entry by key in PostgreSQL.
+ * REQUIRES: Admin authentication
  */
-router.put('/:key', async (req, res) => {
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
+router.put('/:key', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { key } = req.params;
     const value = req.body;
 
-    if (isDbConnected()) {
-      const result = await query(
-        `INSERT INTO site_content (key, value) VALUES ($1, $2)
-         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
-         RETURNING *`,
-        [key, JSON.stringify(value)]
-      );
-      return res.json(result.rows[0]);
-    }
-
-    // Memory store fallback: update STATIC_CONTENT equivalent
-    return res.json({ key, value });
+    const result = await query(
+      `INSERT INTO site_content (key, value) VALUES ($1, $2)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [key, JSON.stringify(value)]
+    );
+    return res.json(result.rows[0]);
   } catch (error) {
     logger.error('Update site content by key error:', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Failed to update site content' });
@@ -117,4 +103,3 @@ router.put('/:key', async (req, res) => {
 });
 
 export default router;
-
