@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Repeat, Loader2, ShoppingBag } from 'lucide-react';
+import { Repeat, Loader2 } from 'lucide-react';
 import { useCart } from '@/lib/cartContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';

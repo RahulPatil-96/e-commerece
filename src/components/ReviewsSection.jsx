@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, ThumbsUp, Trash2, Pencil, CheckCircle2 } from 'lucide-react';
+import { Star, ThumbsUp, Trash2, CheckCircle2 } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/components/ui/use-toast';

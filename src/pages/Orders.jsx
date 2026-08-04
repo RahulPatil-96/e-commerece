@@ -22,7 +22,6 @@ import { Image } from '@/components/ui/image';
  *   order_type?: string,
  *   status: string,
  *   payment_method?: string,
- *   payment_status?: string,
  *   tracking_number?: string,
  *   created_date?: string,
  *   created_at?: string
@@ -99,7 +98,7 @@ export default function Orders() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 md:py-20">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20">
         <PageMeta title="My Orders" description="View your past order history and tracking details from Arihant Stationery." />
         <div className="h-10 bg-secondary animate-pulse rounded-md w-48 mb-8" />
         <div className="space-y-6">
@@ -136,8 +135,9 @@ export default function Orders() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
       <PageMeta title="My Orders" description="View your order history, delivery status, and order details." />
+      
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-border">
         <div>
@@ -241,9 +241,6 @@ export default function Orders() {
                   </h4>
                   <p className="font-medium capitalize text-foreground">
                     Method: {order.payment_method === 'cod' ? 'Cash on Delivery (COD)' : 'Online Payment (Razorpay)'}
-                  </p>
-                  <p className="text-muted-foreground capitalize">
-                    Payment Status: <span className={order.payment_status === 'paid' ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>{order.payment_status || 'Pending'}</span>
                   </p>
                 </div>
 

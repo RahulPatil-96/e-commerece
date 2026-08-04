@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Instagram, Mail, Phone, MapPin, Twitter, Facebook, Youtube, ShieldCheck, Truck, RotateCcw, Heart } from 'lucide-react';
-import NewsletterSignup from '@/components/NewsletterSignup';
+import { Instagram, Mail, Phone, MapPin, Twitter, Facebook, Youtube, Heart } from 'lucide-react';
 
 export default function Footer() {
   return (

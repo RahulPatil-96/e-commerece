@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Palette, Plus, X, Loader2, AlertCircle, Save } from 'lucide-react';
+import { Plus, X, Loader2, AlertCircle, Save } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';

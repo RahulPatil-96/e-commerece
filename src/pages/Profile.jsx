@@ -61,7 +61,7 @@ export default function Profile() {
       })
       .finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function Profile() {
       .catch(() => { if (mounted) toast({ title: 'Failed to load addresses', variant: 'destructive' }); })
       .finally(() => mounted && setAddressesLoading(false));
     return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const handleSaveProfile = async (/** @type {React.FormEvent} */ e) => {
@@ -171,7 +171,7 @@ export default function Profile() {
       pincode: addressForm.pincode,
     });
     if (!validation.valid) {
-      setAddressErrors(/** @type {Record<string, string>} */ (validation.errors));
+      setAddressErrors(/** @type {Record<string, string>} */ (/** @type {unknown} */ (validation.errors)));
       return;
     }
     setSavingAddress(true);
@@ -256,7 +256,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 md:py-20">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20">
         <PageMeta title="My Profile" description="Manage your Arihant account profile and settings." />
         <div className="h-10 bg-secondary animate-pulse rounded-md w-48 mb-8" />
         <div className="space-y-6">
@@ -267,7 +267,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
       <PageMeta title="My Profile" description="View and manage your Arihant account information, profile details, and settings." />
 
       {/* Header */}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Wand2, Truck, RotateCcw, ShieldCheck, Heart, Award, Leaf } from 'lucide-react';
+import { ArrowRight, Sparkles, Wand2, Heart, Award, Truck, ShieldCheck, Recycle, Pen } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import ProductCard from '@/components/ProductCard';
-import GiftFinderCTA from '@/components/GiftFinderCTA';
 import Reveal from '@/components/Reveal';
 import PageMeta from '@/components/PageMeta';
 import { Image } from '@/components/ui/image';
+
+const MARQUEE_ICON_MAP = /** @type {Record<string, React.ElementType>} */ ({ Truck, ShieldCheck, Recycle, Sparkles, Pen });
 
 export default function Home() {
   const [products, setProducts] = useState(/** @type {any[]} */([]));
@@ -37,7 +38,12 @@ export default function Home() {
     apiClient.entities.SiteContent.getAll()
       .then(data => {
         if (data.home_collections) setCollections(data.home_collections);
-        if (data.home_marquee_items) setMarqueeItems(data.home_marquee_items);
+        if (data.home_marquee_items) {
+          setMarqueeItems(data.home_marquee_items.map((/** @type {{ icon?: string, text?: string }} */ item) => ({
+            ...item,
+            icon: MARQUEE_ICON_MAP[item.icon || ''] || Sparkles,
+          })));
+        }
         if (data.home_stats) setStats(data.home_stats);
         if (data.home_testimonials) setTestimonials(data.home_testimonials);
       })

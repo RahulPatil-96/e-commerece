@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Users, Shield, Trash2, Loader2, AlertCircle, Plus, X } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Shield, Trash2, Loader2, AlertCircle, Plus, X, Search } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -38,7 +38,37 @@ export default function UsersManager() {
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('user');
   const [creating, setCreating] = useState(false);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const { toast } = useToast();
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      // Role filter
+      if (roleFilter !== 'all' && u.role !== roleFilter) return false;
+      // Status filter
+      if (statusFilter === 'verified' && !u.is_verified) return false;
+      if (statusFilter === 'pending' && u.is_verified) return false;
+      // Search
+      const q = search.trim().toLowerCase();
+      if (q) {
+        const haystack = [String(u.id), u.email, u.role].filter(Boolean).join(' ').toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [users, search, roleFilter, statusFilter]);
+
+  const hasActiveFilters = search.trim() !== '' || roleFilter !== 'all' || statusFilter !== 'all';
+
+  const clearFilters = () => {
+    setSearch('');
+    setRoleFilter('all');
+    setStatusFilter('all');
+  };
+
+  const filterSelectClass = 'px-3 py-2 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent';
 
   useEffect(() => {
     loadUsers();
@@ -156,6 +186,51 @@ export default function UsersManager() {
         </button>
       </div>
 
+      {/* Search + Filters Toolbar */}
+      <div className="bg-card border border-border rounded-sm p-4 space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by ID, email or role..."
+            className="w-full pl-9 pr-9 py-2 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className={filterSelectClass}>
+            <option value="all">All Roles</option>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={filterSelectClass}>
+            <option value="all">All Statuses</option>
+            <option value="verified">Verified</option>
+            <option value="pending">Pending</option>
+          </select>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-xs font-medium text-accent hover:underline inline-flex items-center gap-1"
+            >
+              <X className="w-3.5 h-3.5" /> Clear filters
+            </button>
+          )}
+          <span className="ml-auto text-xs text-muted-foreground">
+            Showing {filteredUsers.length} of {users.length} user{users.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+
       <div className="bg-card border border-border rounded-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -170,14 +245,14 @@ export default function UsersManager() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {users.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">
-                    No users found.
+                    {users.length === 0 ? 'No users found.' : 'No users match your search / filters.'}
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-secondary/30 transition-colors">
                     <td className="px-4 py-3 text-muted-foreground">#{user.id}</td>
                     <td className="px-4 py-3 font-medium">{user.email}</td>
@@ -319,4 +394,3 @@ export default function UsersManager() {
     </div>
   );
 }
-

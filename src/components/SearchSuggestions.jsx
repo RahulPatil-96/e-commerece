@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 

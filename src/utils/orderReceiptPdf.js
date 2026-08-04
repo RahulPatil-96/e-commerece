@@ -101,175 +101,212 @@ function buildReceiptHtml(
   const items = Array.isArray(order.items) ? order.items : [];
   const subtotal = Number(order.subtotal || 0);
   const shipping = Number(order.shipping || 0);
-  const total = Number(order.total || subtotal + shipping);
-  const addressStr = [order.address, order.city, order.state, order.pincode]
-    .filter(Boolean)
-    .join(', ') || '—';
+  const discount = Number(order.discount || 0);
+  const total = Number(order.total || subtotal - discount + shipping);
+  const addressStr =
+    [order.address, order.city, order.state, order.pincode]
+      .filter(Boolean)
+      .join(', ') || '—';
   const payMethod = String(order.payment_method || 'cod').toUpperCase();
-  const payStatus = String(order.payment_status || 'pending').toUpperCase();
 
-  const itemsHtml = items.map((/** @type {Record<string, any>} */ item) => {
-    const name = esc(item.name || 'Product');
-    const qty = Number(item.qty || 1);
-    const price = Number(item.price || 0);
-    const lineTotal = qty * price;
-    let custom = '';
-    if (item.customization && (item.customization.name || item.customization.text)) {
-      custom = `<div class="custom">✦ ${esc(item.customization.name || item.customization.text)}</div>`;
-    }
-    return (
-      `<div class="tr"><div class="c-name">${name}${custom}</div>` +
-      `<div class="c-qty">${qty}</div><div class="c-amt">${inr(lineTotal)}</div></div>`
-    );
-  }).join('');
+  const itemsRowsHtml = items
+    .map((/** @type {Record<string, any>} */ item, index) => {
+      const name = esc(item.name || 'Product');
+      const qty = Number(item.qty || 1);
+      const price = Number(item.price || 0);
+      const lineTotal = qty * price;
+      const bg = index % 2 === 1 ? '#faf6f1' : '#ffffff';
+      let custom = '';
+      if (
+        item.customization &&
+        (item.customization.name || item.customization.text)
+      ) {
+        custom = `<div style="font-size: 9px; color: ${ACCENT}; font-style: italic; font-weight: normal; margin-top: 3px; line-height: 1.3;">✦ ${esc(
+          item.customization.name || item.customization.text
+        )}</div>`;
+      }
+      return (
+        `<tr style="background: ${bg}; border-top: 1px solid #f0e9e0;">` +
+        `<td style="padding: 10px 12px; font-size: 11px; font-weight: 600; color: ${DARK}; vertical-align: top; word-break: break-word; line-height: 1.4;">${name}${custom}</td>` +
+        `<td style="padding: 10px 6px; font-size: 11px; color: ${DARK}; text-align: center; vertical-align: top; line-height: 1.4;">${qty}</td>` +
+        `<td style="padding: 10px 12px; font-size: 11px; font-weight: 600; color: ${DARK}; text-align: right; vertical-align: top; line-height: 1.4;">${inr(
+          lineTotal
+        )}</td>` +
+        `</tr>`
+      );
+    })
+    .join('');
 
-  const qrBlock = qrDataUrl
-    ? `<div class="qr-wrap"><img src="${qrDataUrl}" class="qr" alt="QR" /><div class="qr-cap">Scan to verify order</div></div>`
+  const qrCell = qrDataUrl
+    ? `<td style="padding: 16px 24px 16px 12px; vertical-align: top; text-align: center; width: 100px;">` +
+      `<img src="${qrDataUrl}" style="width: 72px; height: 72px; border: 1px solid ${LIGHT_LINE}; padding: 3px; background: ${WHITE}; display: block; margin: 0 auto;" alt="QR" />` +
+      `<div style="font-size: 7px; color: ${MUTED}; margin-top: 4px; line-height: 1.2; text-align: center;">Scan to verify order</div>` +
+      `</td>`
     : '';
 
-  const trackingBlock = order.tracking_number
-    ? `<div class="tracking"><strong>Tracking:</strong> <span>${esc(order.tracking_number)}</span></div>`
+  const trackingHtml = order.tracking_number
+    ? `<div style="font-size: 11px; color: ${DARK}; margin-top: 6px; padding: 2px 0; line-height: 1.4;"><strong>Tracking:</strong> <span style="color: ${ACCENT}; font-weight: 600;">${esc(
+        order.tracking_number
+      )}</span></div>`
     : '';
 
   return `
-<style>
-#receipt{width:${A5_W_PX}px;background:${WHITE};color:${DARK};font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;box-sizing:border-box;overflow:visible;}
-#receipt *{box-sizing:border-box;margin:0;padding:0;}
+<div id="receipt" style="width:${A5_W_PX}px; background:${WHITE}; color:${DARK}; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing:border-box; margin:0; padding:0; line-height:1.4; text-align:left;">
+  <!-- Header -->
+  <table style="width:100%; border-collapse:collapse; background:${LIGHT_FILL}; border-bottom:2px solid ${ACCENT}; margin:0; padding:0;">
+    <tr>
+      <td style="padding:20px 0 20px 24px; vertical-align:top;">
+        <div style="font-family:Georgia, 'Times New Roman', serif; font-size:20px; font-weight:bold; color:${DARK}; line-height:1.2;">${BRAND}</div>
+        <div style="font-size:9px; color:${MUTED}; margin-top:3px; line-height:1.3;">Premium handcrafted stationery</div>
+        <div style="font-size:12px; font-weight:bold; color:${ACCENT}; margin-top:10px; letter-spacing:0.5px; line-height:1.3;">ORDER #${esc(
+          order.id
+        )}</div>
+        <div style="font-size:9px; color:${MUTED}; margin-top:3px; line-height:1.3;">Placed: ${placed}</div>
+      </td>
+      <td style="padding:20px 12px 20px 0; vertical-align:top; text-align:right;">
+        <div style="display:inline-block; background:${ACCENT}; color:${WHITE}; font-size:9px; font-weight:bold; letter-spacing:1px; padding:4px 12px; border-radius:12px; text-transform:uppercase; line-height:1.3;">${orderType}</div>
+        <div style="font-size:13px; font-weight:bold; color:${DARK}; margin-top:8px; letter-spacing:0.5px; line-height:1.3;">PACKING RECEIPT</div>
+        <div style="font-size:8px; color:${MUTED}; margin-top:3px; line-height:1.3;">Parcel slip · paste on package</div>
+      </td>
+      ${qrCell}
+    </tr>
+  </table>
 
-/* ===== Header (flex) ===== */
-.header{background:${LIGHT_FILL};border-bottom:2px solid ${ACCENT};padding:20px 28px 18px;display:flex;justify-content:space-between;align-items:flex-start;}
-.brand-name{font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:700;color:${DARK};line-height:1.3;}
-.brand-tag{font-size:9px;color:${MUTED};margin-top:3px;}
-.brand-order{font-size:12px;font-weight:700;color:${ACCENT};margin-top:12px;letter-spacing:.5px;}
-.brand-date{font-size:9px;color:${MUTED};margin-top:4px;}
-.header-right{text-align:right;padding-top:4px;}
-.type-chip{display:inline-block;background:${ACCENT};color:${WHITE};font-size:9px;font-weight:700;letter-spacing:1px;padding:5px 14px;border-radius:12px;line-height:1.4;}
-.receipt-label{font-size:13px;font-weight:700;color:${DARK};margin-top:10px;letter-spacing:1px;}
-.receipt-sub{font-size:8px;color:${MUTED};margin-top:4px;}
-.qr-wrap{text-align:center;padding-left:20px;}
-.qr{width:76px;height:76px;border:1px solid ${LIGHT_LINE};padding:4px;background:${WHITE};}
-.qr-cap{font-size:7px;color:${MUTED};margin-top:5px;line-height:1.4;}
+  <!-- Main Body -->
+  <div style="padding:20px 24px 24px;">
+    <!-- Customer & Delivery -->
+    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${ACCENT}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-bottom:12px; line-height:1.4;">Customer &amp; Delivery</div>
+    <table style="width:100%; border-collapse:collapse; table-layout:fixed; margin-bottom:16px;">
+      <tr>
+        <td style="width:50%; vertical-align:top; padding-right:12px;">
+          <div style="font-size:14px; font-weight:bold; color:${DARK}; line-height:1.3;">${esc(
+            order.customer_name || '—'
+          )}</div>
+          ${
+            order.phone
+              ? `<div style="font-size:11px; color:${DARK}; margin-top:4px; line-height:1.4;">Phone: ${esc(
+                  order.phone
+                )}</div>`
+              : ''
+          }
+          ${
+            order.email
+              ? `<div style="font-size:11px; color:${DARK}; margin-top:4px; line-height:1.4; word-break:break-all;">Email: ${esc(
+                  order.email
+                )}</div>`
+              : ''
+          }
+        </td>
+        <td style="width:50%; vertical-align:top; padding-left:12px;">
+          <div style="font-size:8px; font-weight:bold; color:${MUTED}; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; line-height:1.3;">Shipping Address</div>
+          <div style="font-size:11px; line-height:1.5; color:${DARK}; word-break:break-word;">${esc(
+            addressStr
+          )}</div>
+        </td>
+      </tr>
+    </table>
 
-/* ===== Body ===== */
-.body{padding:18px 28px 20px;}
+    <!-- Order Items -->
+    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${ACCENT}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-top:16px; margin-bottom:12px; line-height:1.4;">Order Items</div>
+    <table style="width:100%; border-collapse:collapse; border:1px solid ${LIGHT_LINE}; border-radius:6px; overflow:hidden; table-layout:fixed; margin-bottom:16px;">
+      <thead>
+        <tr style="background:${ACCENT}; color:${WHITE};">
+          <th style="padding:10px 12px; font-size:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; text-align:left; width:62%; line-height:1.3;">Item</th>
+          <th style="padding:10px 6px; font-size:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; text-align:center; width:14%; line-height:1.3;">Qty</th>
+          <th style="padding:10px 12px; font-size:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; text-align:right; width:24%; line-height:1.3;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsRowsHtml}
+      </tbody>
+    </table>
 
-/* Section titles — generous space above and below */
-.sec-title{font-size:9px;font-weight:700;letter-spacing:1.5px;color:${ACCENT};text-transform:uppercase;border-bottom:1px solid ${LIGHT_LINE};padding-bottom:5px;margin:16px 0 12px;}
-.sec-title:first-child{margin-top:0;}
+    <!-- Totals Summary -->
+    <table style="width:100%; border-collapse:collapse; table-layout:fixed; margin-bottom:16px;">
+      <tr>
+        <td style="width:52%;"></td>
+        <td style="width:48%; vertical-align:top;">
+          <table style="width:100%; border-collapse:collapse; border:1px solid ${LIGHT_LINE}; border-radius:6px; background:${WHITE};">
+            <tr>
+              <td style="padding:8px 12px; font-size:11px; color:${DARK}; line-height:1.4;">Subtotal</td>
+              <td style="padding:8px 12px; font-size:11px; color:${DARK}; text-align:right; font-weight:600; line-height:1.4;">${inr(
+                subtotal
+              )}</td>
+            </tr>
+<tr>
+              <td style="padding:4px 12px 8px; font-size:11px; color:${DARK}; line-height:1.4;">Shipping</td>
+              <td style="padding:4px 12px 8px; font-size:11px; color:${DARK}; text-align:right; font-weight:600; line-height:1.4;">${inr(
+                shipping
+              )}</td>
+            </tr>
+            ${discount > 0 ? `<tr>
+              <td style="padding:4px 12px 8px; font-size:11px; color:${ACCENT}; line-height:1.4;">Discount</td>
+              <td style="padding:4px 12px 8px; font-size:11px; color:${ACCENT}; text-align:right; font-weight:600; line-height:1.4;">-${inr(
+                discount
+              )}</td>
+            </tr>` : ''}
+            <tr>
+              <td colspan="2" style="padding:4px 6px 6px;">
+                <table style="width:100%; border-collapse:collapse; background:${LIGHT_FILL}; border:1px solid ${ACCENT}; border-radius:4px;">
+                  <tr>
+                    <td style="padding:8px 10px; font-size:13px; font-weight:bold; color:${DARK}; line-height:1.3;">TOTAL</td>
+                    <td style="padding:8px 10px; font-size:13px; font-weight:bold; color:${ACCENT}; text-align:right; line-height:1.3;">${inr(
+                      total
+                    )}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
 
-/* Customer + address (flex, 2 columns) */
-.cols{display:flex;justify-content:space-between;margin-bottom:6px;}
-.col{width:49%;}
-.cust-name{font-size:15px;font-weight:700;color:${DARK};}
-.cust-line{font-size:11px;color:${DARK};margin-top:4px;}
-.addr-label{font-size:8px;font-weight:700;color:${MUTED};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
-.addr-text{font-size:11px;line-height:1.55;color:${DARK};word-break:break-word;}
-
-/* Line-items (flex rows) */
-.tbl{border:1px solid ${LIGHT_LINE};border-radius:6px;overflow:hidden;margin:4px 0 2px;}
-.tr{display:flex;align-items:stretch;}
-.tr.th{background:${ACCENT};color:${WHITE};}
-.th .c-name,.th .c-qty,.th .c-amt{font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
-.c-name{flex:1;padding:12px 14px;font-size:11px;font-weight:600;line-height:1.4;}
-.c-qty{width:50px;text-align:center;padding:12px 6px;font-size:11px;}
-.c-amt{width:96px;text-align:right;padding:12px 14px;font-size:11px;font-weight:600;}
-.tr:nth-child(even){background:#faf6f1;}
-.tr{border-top:1px solid #f0e9e0;}
-.tr.th,.tr:first-child{border-top:none;}
-.custom{font-size:9px;color:${ACCENT};font-style:italic;font-weight:400;margin-top:4px;line-height:1.4;}
-
-/* Totals */
-.totals{display:flex;justify-content:flex-end;margin:16px 0 8px;}
-.totals-box{width:240px;border:1px solid ${LIGHT_LINE};border-radius:6px;padding:6px 4px;background:${WHITE};}
-.t-line{display:flex;justify-content:space-between;font-size:11px;color:${DARK};padding:4px 10px;}
-.t-line.total{margin:6px 4px 4px;border:1px solid ${ACCENT};background:${LIGHT_FILL};border-radius:5px;padding:10px 12px;font-weight:700;font-size:14px;}
-
-/* Payment / tracking */
-.pay-line{font-size:11px;color:${DARK};padding:4px 0;}
-.tracking{margin-top:10px;padding:4px 0;font-size:11px;color:${DARK};}
-.tracking span{color:${ACCENT};font-weight:600;}
-
-/* ===== Footer (flex) ===== */
-.footer{border-top:1px solid ${LIGHT_LINE};padding:16px 28px;display:flex;justify-content:space-between;align-items:center;background:${WHITE};}
-.f-brand{font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:13px;color:${DARK};}
-.f-thanks{font-size:9px;color:${MUTED};margin-top:3px;}
-.f-right{text-align:right;font-size:9px;color:${MUTED};}
-.f-right div:first-child{color:${DARK};font-weight:600;font-size:10px;}
-</style>
-<div id="receipt">
-  <div class="header">
-    <div class="brand">
-      <div class="brand-name">${BRAND}</div>
-      <div class="brand-tag">Premium handcrafted stationery</div>
-      <div class="brand-order">ORDER #${esc(order.id)}</div>
-      <div class="brand-date">Placed: ${placed}</div>
+    <!-- Payment -->
+    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${ACCENT}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-top:16px; margin-bottom:10px; line-height:1.4;">Payment</div>
+    <div style="font-size:11px; color:${DARK}; padding:2px 0; line-height:1.4;">
+      <strong>Method:</strong> ${payMethod}
     </div>
-    <div class="header-right">
-      <div class="type-chip">${orderType}</div>
-      <div class="receipt-label">PACKING RECEIPT</div>
-      <div class="receipt-sub">Parcel slip · paste on package</div>
-    </div>
-    ${qrBlock}
+    ${trackingHtml}
   </div>
-  <div class="body">
-    <div class="sec-title">Customer &amp; Delivery</div>
-    <div class="cols">
-      <div class="col">
-        <div class="cust-name">${esc(order.customer_name || '—')}</div>
-        ${order.phone ? `<div class="cust-line">Phone: ${esc(order.phone)}</div>` : ''}
-        ${order.email ? `<div class="cust-line">Email: ${esc(order.email)}</div>` : ''}
-      </div>
-      <div class="col">
-        <div class="addr-label">Shipping Address</div>
-        <div class="addr-text">${esc(addressStr)}</div>
-      </div>
-    </div>
 
-    <div class="sec-title">Order Items</div>
-    <div class="tbl">
-      <div class="tr th">
-        <div class="c-name">Item</div>
-        <div class="c-qty">Qty</div>
-        <div class="c-amt">Amount</div>
-      </div>
-      ${itemsHtml}
-    </div>
-
-    <div class="totals">
-      <div class="totals-box">
-        <div class="t-line"><span>Subtotal</span><span>${inr(subtotal)}</span></div>
-        <div class="t-line"><span>Shipping</span><span>${inr(shipping)}</span></div>
-        <div class="t-line total"><span>TOTAL</span><span>${inr(total)}</span></div>
-      </div>
-    </div>
-
-    <div class="sec-title">Payment</div>
-    <div class="pay-line"><strong>Method:</strong> ${payMethod} &nbsp;&nbsp; <strong>Status:</strong> ${payStatus}</div>
-    ${trackingBlock}
-  </div>
-  <div class="footer">
-    <div>
-      <div class="f-brand">${BRAND}</div>
-      <div class="f-thanks">Thank you for your order!</div>
-    </div>
-    <div class="f-right">
-      <div>Order #${esc(order.id)}</div>
-      <div>${placed}</div>
-    </div>
-  </div>
+  <!-- Footer -->
+  <table style="width:100%; border-collapse:collapse; border-top:1px solid ${LIGHT_LINE}; background:${WHITE}; margin:0; padding:0;">
+    <tr>
+      <td style="padding:14px 24px; vertical-align:middle;">
+        <div style="font-family:Georgia, 'Times New Roman', serif; font-weight:bold; font-size:12px; color:${DARK}; line-height:1.3;">${BRAND}</div>
+        <div style="font-size:8px; color:${MUTED}; margin-top:2px; line-height:1.3;">Thank you for your order!</div>
+      </td>
+      <td style="padding:14px 24px; vertical-align:middle; text-align:right;">
+        <div style="font-size:10px; font-weight:bold; color:${DARK}; line-height:1.3;">Order #${esc(
+          order.id
+        )}</div>
+        <div style="font-size:8px; color:${MUTED}; margin-top:2px; line-height:1.3;">${placed}</div>
+      </td>
+    </tr>
+  </table>
 </div>`;
 }
 
 /** Wait for all <img> inside the container to finish loading. */
 async function waitForImages(/** @type {HTMLElement} */ root) {
   const images = Array.from(root.querySelectorAll('img'));
-  await Promise.all(images.map((/** @type {HTMLImageElement} */ img) => {
-    if (img.complete) return Promise.resolve();
-    return new Promise((resolve) => {
-      img.onload = resolve;
-      img.onerror = resolve;
-    });
-  }));
+  await Promise.all(
+    images.map((/** @type {HTMLImageElement} */ img) => {
+      if (img.complete || img.naturalWidth > 0) return Promise.resolve();
+      return new Promise((resolve) => {
+        const timer = setTimeout(resolve, 500);
+        img.onload = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        img.onerror = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+      });
+    })
+  );
 }
 
 /**
@@ -277,7 +314,9 @@ async function waitForImages(/** @type {HTMLElement} */ root) {
  * @param {Record<string, any>} order  A formatted order object.
  * @returns {Promise<{ doc: import('jspdf').jsPDF, fileName: string }>}
  */
-export async function generateOrderReceiptPdf(/** @type {Record<string, any>} */ order) {
+export async function generateOrderReceiptPdf(
+  /** @type {Record<string, any>} */ order
+) {
   // --- QR code ---
   let qrDataUrl = null;
   try {
@@ -296,9 +335,10 @@ export async function generateOrderReceiptPdf(/** @type {Record<string, any>} */
 
   // --- Render off-screen HTML with html2canvas ---
   const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '-10000px';
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
   container.style.top = '0';
+  container.style.width = `${A5_W_PX}px`;
   container.style.zIndex = '-10000';
   container.style.pointerEvents = 'none';
   container.innerHTML = html;
@@ -310,6 +350,9 @@ export async function generateOrderReceiptPdf(/** @type {Record<string, any>} */
       throw new Error('Receipt element not found');
     }
     await waitForImages(container);
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
 
     // Measure natural content height (no clipping → no overlap)
     const contentHeight = receiptEl.getBoundingClientRect().height;
@@ -317,7 +360,7 @@ export async function generateOrderReceiptPdf(/** @type {Record<string, any>} */
     const canvas = await html2canvas(/** @type {HTMLElement} */ (receiptEl), {
       scale: SCALE,
       width: A5_W_PX,
-      height: contentHeight,
+      height: Math.ceil(contentHeight),
       windowWidth: A5_W_PX,
       backgroundColor: WHITE,
       logging: false,

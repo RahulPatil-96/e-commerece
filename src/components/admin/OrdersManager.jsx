@@ -7,11 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 const ORDER_TYPES = ['retail', 'wholesale', 'bulk', 'b2b'];
-const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
 
 /** @typedef {{ name?: string, text?: string, placement?: string, color?: string, font?: string, [key: string]: any }} Customization */
 /** @typedef {{ id: string | number, name: string, qty: number, price: number, customization?: Customization, customization_price?: number, [key: string]: any }} OrderLineItem */
-/** @typedef {{ id: string | number, customer_name?: string, email?: string, phone?: string, order_type?: string, status?: string, address?: string, city?: string, state?: string, pincode?: string, tracking_number?: string, items?: OrderLineItem[], payment_method?: string, payment_status?: string, subtotal?: number, shipping?: number, total?: number, created_date?: string, [key: string]: any }} OrderItem */
+/** @typedef {{ id: string | number, customer_name?: string, email?: string, phone?: string, order_type?: string, status?: string, address?: string, city?: string, state?: string, pincode?: string, tracking_number?: string, items?: OrderLineItem[], payment_method?: string, discount?: number, subtotal?: number, shipping?: number, total?: number, created_date?: string, [key: string]: any }} OrderItem */
 
 const statusColor = (/** @type {string | undefined} */ s) => ({
   pending: 'bg-yellow-100 text-yellow-800',
@@ -19,13 +18,6 @@ const statusColor = (/** @type {string | undefined} */ s) => ({
   shipped: 'bg-purple-100 text-purple-800',
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
-}[s || ''] || 'bg-secondary text-muted-foreground');
-
-const paymentStatusColor = (/** @type {string | undefined} */ s) => ({
-  paid: 'bg-emerald-100 text-emerald-700',
-  failed: 'bg-red-100 text-red-700',
-  refunded: 'bg-orange-100 text-orange-700',
-  pending: 'bg-yellow-100 text-yellow-800',
 }[s || ''] || 'bg-secondary text-muted-foreground');
 
 // Known engraving colors (hex → readable label). Used to show a swatch + label alongside the code.
@@ -100,7 +92,6 @@ export default function OrdersManager() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [paymentFilter, setPaymentFilter] = useState('all');
 
   const fetch = () => {
     setLoading(true);
@@ -142,7 +133,6 @@ export default function OrdersManager() {
     return orders.filter((o) => {
       if (statusFilter !== 'all' && (o.status || 'pending') !== statusFilter) return false;
       if (typeFilter !== 'all' && (o.order_type || 'retail') !== typeFilter) return false;
-      if (paymentFilter !== 'all' && (o.payment_status || 'pending') !== paymentFilter) return false;
       const q = search.trim().toLowerCase();
       if (q) {
         const haystack = [
@@ -161,15 +151,14 @@ export default function OrdersManager() {
       }
       return true;
     });
-  }, [orders, search, statusFilter, typeFilter, paymentFilter]);
+  }, [orders, search, statusFilter, typeFilter]);
 
-  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'all' || typeFilter !== 'all' || paymentFilter !== 'all';
+  const hasActiveFilters = search.trim() !== '' || statusFilter !== 'all' || typeFilter !== 'all';
 
   const clearFilters = () => {
     setSearch('');
     setStatusFilter('all');
     setTypeFilter('all');
-    setPaymentFilter('all');
   };
 
   const filterSelectClass = 'px-3 py-2 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent';
@@ -212,10 +201,6 @@ export default function OrdersManager() {
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={filterSelectClass}>
             <option value="all">All Types</option>
             {ORDER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)} className={filterSelectClass}>
-            <option value="all">All Payments</option>
-            {PAYMENT_STATUSES.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
           {hasActiveFilters && (
             <button
@@ -288,11 +273,8 @@ export default function OrdersManager() {
                       ₹{(o.total || 0).toLocaleString('en-IN')}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col gap-1 min-w-[90px]">
+                      <div className="min-w-[90px]">
                         <span className="text-xs capitalize">{o.payment_method || 'cod'}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full w-fit capitalize ${paymentStatusColor(o.payment_status)}`}>
-                          {o.payment_status || 'pending'}
-                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -351,11 +333,10 @@ export default function OrdersManager() {
                               )}
                             </div>
 
-                            {/* Payment summary */}
+                            {/* Payment + totals summary */}
                             <div className="bg-card border border-border/60 rounded-sm p-4 text-xs space-y-1.5">
                               <p className="font-medium text-muted-foreground uppercase tracking-wider">Payment</p>
                               <p className="capitalize"><span className="text-muted-foreground">Method:</span> {o.payment_method || 'cod'}</p>
-                              <p className="capitalize"><span className="text-muted-foreground">Status:</span> <span className={o.payment_status === 'paid' ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>{o.payment_status || 'pending'}</span></p>
                               <div className="grid grid-cols-2 gap-2 pt-1">
                                 <div>
                                   <p className="text-muted-foreground">Subtotal</p>
@@ -366,6 +347,12 @@ export default function OrdersManager() {
                                   <p className="font-medium">₹{(o.shipping || 0).toLocaleString('en-IN')}</p>
                                 </div>
                               </div>
+                              {Number(o.discount || 0) > 0 && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-muted-foreground">Discount</span>
+                                  <span className="font-medium text-emerald-600">-₹{(o.discount || 0).toLocaleString('en-IN')}</span>
+                                </div>
+                              )}
                               <div className="pt-1 border-t border-border/50">
                                 <p className="font-medium text-sm">Total: ₹{(o.total || 0).toLocaleString('en-IN')}</p>
                               </div>

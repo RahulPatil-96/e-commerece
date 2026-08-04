@@ -75,7 +75,7 @@ export default function Cart() {
         }
       });
     return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user?.id, user?.email]);
 
   const applySavedAddress = (/** @type {SavedAddress | undefined} */ addr) => {
@@ -193,6 +193,7 @@ export default function Cart() {
           subtotal,
           shipping,
           total,
+          discount,
           order_type: mode,
           status: 'pending',
           payment_method: 'cod',
@@ -253,6 +254,7 @@ export default function Cart() {
               subtotal,
               shipping,
               total,
+              discount,
               order_type: mode,
               status: 'paid',
               payment_method: 'online',

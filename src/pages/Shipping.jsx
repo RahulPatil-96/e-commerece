@@ -29,7 +29,7 @@ const FAQs = [
 
 export default function Shipping() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
       <PageMeta title="Shipping & Delivery" description="Shipping rates, delivery timelines, and tracking information for Arihant Stationery orders." />
 
       <div className="mb-10 pb-6 border-b border-border">

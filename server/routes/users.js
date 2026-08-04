@@ -20,9 +20,9 @@ const createUserSchema = z.object({
 });
 
 const userUpdateSchema = z.object({
-  first_name: z.string().min(1).optional(),
-  last_name: z.string().min(1).optional(),
-  phone: z.string().regex(/^\d{10}$/, 'Phone must be 10 digits').optional(),
+  first_name: z.string().max(100).optional(),
+  last_name: z.string().max(100).optional(),
+  phone: z.string().regex(/^\d{10}$/, 'Phone must be 10 digits').or(z.literal('')).optional(),
 });
 
 const passwordChangeSchema = z.object({
@@ -41,6 +41,8 @@ function formatUser(row) {
     phone: row.phone || '',
     role: row.role,
     is_verified: row.is_verified,
+    avatar_url: row.avatar_url || null,
+    auth_provider: row.auth_provider || 'local',
     created_at: row.created_at,
   };
 }
@@ -79,65 +81,6 @@ router.post('/', requireAdmin, async (req, res) => {
   } catch (error) {
     logger.error('Create user error:', { error: error.message, stack: error.stack });
     res.status(400).json({ message: error.message || 'Failed to create user' });
-  }
-});
-
-// GET /api/users/:id — get single user (admin only)
-router.get('/:id', requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await query(
-      'SELECT id, email, role, is_verified, created_at FROM users WHERE id = $1',
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    return res.json(result.rows[0]);
-  } catch (error) {
-    logger.error('Fetch user error:', { error: error.message, stack: error.stack });
-    res.status(500).json({ message: 'Failed to fetch user' });
-  }
-});
-
-// PUT /api/users/:id/role — update user role (admin only)
-router.put('/:id/role', requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { role } = roleSchema.parse(req.body);
-
-    const result = await query(
-      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, email, role, is_verified, created_at',
-      [role, id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    return res.json(result.rows[0]);
-  } catch (error) {
-    logger.error('Update user role error:', { error: error.message, stack: error.stack });
-    res.status(400).json({ message: error.message || 'Failed to update user role' });
-  }
-});
-
-// DELETE /api/users/:id — delete user (admin only)
-router.delete('/:id', requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Prevent deleting yourself
-    if (String(req.user.id) === String(id)) {
-      return res.status(400).json({ message: 'Cannot delete your own account' });
-    }
-
-    const result = await query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    return res.json({ success: true, message: 'User deleted successfully' });
-  } catch (error) {
-    logger.error('Delete user error:', { error: error.message, stack: error.stack });
-    res.status(500).json({ message: 'Failed to delete user' });
   }
 });
 
@@ -532,6 +475,71 @@ router.get('/wishlist/check/:product_id', requireAuth, async (req, res) => {
   } catch (error) {
     logger.error('Check wishlist error:', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Failed to check wishlist' });
+  }
+});
+
+// ============================================================================
+// ADMIN SINGLE-USER ENDPOINTS (admin only)
+// NOTE: These must be registered AFTER the /me and /wishlist routes above so
+// they don't shadow the personal account endpoints (e.g. GET /users/me).
+// ============================================================================
+
+// GET /api/users/:id — get single user (admin only)
+router.get('/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      'SELECT id, email, role, is_verified, created_at FROM users WHERE id = $1',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.json(result.rows[0]);
+  } catch (error) {
+    logger.error('Fetch user error:', { error: error.message, stack: error.stack });
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
+});
+
+// PUT /api/users/:id/role — update user role (admin only)
+router.put('/:id/role', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = roleSchema.parse(req.body);
+
+    const result = await query(
+      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, email, role, is_verified, created_at',
+      [role, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.json(result.rows[0]);
+  } catch (error) {
+    logger.error('Update user role error:', { error: error.message, stack: error.stack });
+    res.status(400).json({ message: error.message || 'Failed to update user role' });
+  }
+});
+
+// DELETE /api/users/:id — delete user (admin only)
+router.delete('/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent deleting yourself
+    if (String(req.user.id) === String(id)) {
+      return res.status(400).json({ message: 'Cannot delete your own account' });
+    }
+
+    const result = await query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    logger.error('Delete user error:', { error: error.message, stack: error.stack });
+    res.status(500).json({ message: 'Failed to delete user' });
   }
 });
 

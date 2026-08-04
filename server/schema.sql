@@ -137,6 +137,7 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(50) DEFAULT 'reta
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS state VARCHAR(100);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (discount >= 0);
 
 -- ----------------------------------------------------------------------------
 -- 4b. USER ADDRESSES TABLE (saved shipping addresses)

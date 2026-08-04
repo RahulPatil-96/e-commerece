@@ -4,7 +4,7 @@ import { ShieldCheck, Mail, Lock, Eye } from 'lucide-react';
 
 export default function PrivacyPolicy() {
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
       <PageMeta title="Privacy Policy" description="How Arihant Stationery collects, uses, and protects your personal information." />
 
       <div className="mb-10 pb-6 border-b border-border">

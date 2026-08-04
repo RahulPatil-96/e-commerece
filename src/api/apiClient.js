@@ -407,13 +407,8 @@ export const apiClient = {
 
       addresses: {
         list: async () => {
-          try {
-            const res = await request('/users/me/addresses');
-            return Array.isArray(res) ? res : [];
-          } catch (err) {
-            console.warn('apiClient: User.addresses.list failed', err);
-            return [];
-          }
+          const res = await request('/users/me/addresses');
+          return Array.isArray(res) ? res : [];
         },
 
         create: async (/** @type {JsonObject} */ data) => {

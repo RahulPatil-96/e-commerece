@@ -15,6 +15,7 @@ function formatOrder(row) {
     subtotal: Number(row.subtotal),
     shipping: Number(row.shipping),
     total: Number(row.total),
+    discount: Number(row.discount || 0),
     items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
     created_date: row.created_at || new Date().toISOString(),
   };
@@ -68,6 +69,7 @@ router.post('/', requireAuth, async (req, res) => {
       subtotal,
       shipping,
       total,
+      discount,
       order_type,
       status,
       payment_method,
@@ -111,12 +113,12 @@ router.post('/', requireAuth, async (req, res) => {
       const orderResult = await client.query(
         `INSERT INTO orders (
           customer_name, email, phone, address, city, pincode, state, items,
-          subtotal, shipping, total, order_type, status, user_id,
+          subtotal, shipping, total, discount, order_type, status, user_id,
           payment_method, payment_status
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8,
-          $9, $10, $11, $12, $13, $14,
-          $15, $16
+          $9, $10, $11, $12, $13, $14, $15,
+          $16, $17
         ) RETURNING *`,
         [
           customer_name,
@@ -130,6 +132,7 @@ router.post('/', requireAuth, async (req, res) => {
           subtotal || 0,
           shipping || 0,
           total || 0,
+          discount || 0,
           order_type || 'retail',
           status || 'pending',
           req.user.id,

@@ -4,7 +4,7 @@ import { FileText, Scale, RefreshCcw, AlertTriangle } from 'lucide-react';
 
 export default function TermsOfService() {
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
       <PageMeta title="Terms of Service" description="The terms and conditions that govern your use of the Arihant Stationery store and its services." />
 
       <div className="mb-10 pb-6 border-b border-border">
