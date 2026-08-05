@@ -1,38 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Shield, Trash2, Loader2, AlertCircle, Plus, X, Search } from 'lucide-react';
+import { Trash2, Plus, X, Search, UserCheck } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
-
-/**
- * @typedef {Object} User
- * @property {number} id
- * @property {string} email
- * @property {string} role
- * @property {boolean} is_verified
- * @property {string} created_at
- */
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 export default function UsersManager() {
-  /** @type {[User[], import('react').Dispatch<import('react').SetStateAction<User[]>>]} */
-  const [users, setUsers] = useState(/** @type {User[]} */ ([]));
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  /** @type {[User | null, import('react').Dispatch<import('react').SetStateAction<User | null>>]} */
-  const [deleteTarget, setDeleteTarget] = useState(/** @type {User | null} */ (null));
-  const [deleting, setDeleting] = useState(false);
-  /** @type {[number | null, import('react').Dispatch<import('react').SetStateAction<number | null>>]} */
-  const [updatingRole, setUpdatingRole] = useState(/** @type {number | null} */ (null));
   const [modalOpen, setModalOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -41,16 +17,92 @@ export default function UsersManager() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [confirm, setConfirm] = useState(/** @type {null | { type: 'role' | 'verify' | 'delete', user: any, nextRole?: string }} */ (null));
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const { toast } = useToast();
+
+  const loadUsers = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await apiClient.entities.User.list();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await apiClient.entities.User.create({ email: newEmail, password: newPassword, role: newRole });
+      toast({ title: 'User account created successfully' });
+      setModalOpen(false);
+      setNewEmail('');
+      setNewPassword('');
+      setNewRole('user');
+      loadUsers();
+    } catch (err) {
+      toast({ title: 'Failed to create user', description: err instanceof Error ? err.message : 'Error creating user', variant: 'destructive' });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+const handleRoleToggle = (user) => {
+    const nextRole = user.role === 'admin' ? 'user' : 'admin';
+    setConfirm({ type: 'role', user, nextRole });
+  };
+
+  const handleVerifyUser = (user) => {
+    setConfirm({ type: 'verify', user });
+  };
+
+  const handleDeleteUser = (user) => {
+    setConfirm({ type: 'delete', user });
+  };
+
+  const runConfirm = async () => {
+    if (!confirm) return;
+    setConfirmLoading(true);
+    const { type, user, nextRole } = confirm;
+    try {
+if (type === 'role') {
+        await apiClient.entities.User.updateRole(user.id, nextRole || 'user');
+        toast({ title: `Role updated to ${nextRole}` });
+      } else if (type === 'verify') {
+        await apiClient.entities.User.verify(user.id);
+        toast({ title: 'User verified', description: `${user.email} is now verified.` });
+      } else if (type === 'delete') {
+        await apiClient.entities.User.delete(user.id);
+        toast({ title: 'User deleted' });
+      }
+loadUsers();
+      setConfirm(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast({
+        title: type === 'verify' ? 'Failed to verify user' : type === 'delete' ? 'Failed to delete user' : 'Failed to update user role',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      // Role filter
       if (roleFilter !== 'all' && u.role !== roleFilter) return false;
-      // Status filter
       if (statusFilter === 'verified' && !u.is_verified) return false;
       if (statusFilter === 'pending' && u.is_verified) return false;
-      // Search
       const q = search.trim().toLowerCase();
       if (q) {
         const haystack = [String(u.id), u.email, u.role].filter(Boolean).join(' ').toLowerCase();
@@ -60,337 +112,177 @@ export default function UsersManager() {
     });
   }, [users, search, roleFilter, statusFilter]);
 
-  const hasActiveFilters = search.trim() !== '' || roleFilter !== 'all' || statusFilter !== 'all';
-
-  const clearFilters = () => {
-    setSearch('');
-    setRoleFilter('all');
-    setStatusFilter('all');
-  };
-
-  const filterSelectClass = 'px-3 py-2 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent';
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  async function handleCreateUser(/** @type {React.FormEvent} */ e) {
-    e.preventDefault();
-    setCreating(true);
-    try {
-      await apiClient.entities.User.create({ email: newEmail, password: newPassword, role: newRole });
-      toast({ title: 'User created successfully' });
-      setModalOpen(false);
-      setNewEmail('');
-      setNewPassword('');
-      setNewRole('user');
-      loadUsers();
-    } catch (/** @type {any} */ err) {
-      toast({ title: 'Failed to create user', description: err.message || 'Error creating user', variant: 'destructive' });
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function loadUsers() {
-    setLoading(true);
-    setError('');
-    try {
-      const data = /** @type {User[]} */ (await apiClient.entities.User.list());
-      setUsers(data);
-    } catch (/** @type {any} */ err) {
-      setError(err.message || 'Failed to load users');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  /**
-   * @param {number} userId
-   * @param {string} newRole
-   */
-  async function handleRoleChange(userId, newRole) {
-    setUpdatingRole(userId);
-    try {
-      const updated = /** @type {{ role: string }} */ (await apiClient.entities.User.updateRole(userId, newRole));
-      setUsers((prev) => prev.map((/** @type {User} */ u) => (String(u.id) === String(userId) ? { ...u, role: updated.role } : u)));
-      toast({
-        title: 'Role updated',
-        description: `User role changed to ${newRole}`,
-      });
-    } catch (/** @type {any} */ err) {
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to update role',
-        variant: 'destructive',
-      });
-    } finally {
-      setUpdatingRole(null);
-    }
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      await apiClient.entities.User.delete(deleteTarget.id);
-      setUsers((prev) => prev.filter((/** @type {User} */ u) => String(u.id) !== String(deleteTarget.id)));
-      toast({
-        title: 'User deleted',
-        description: `${deleteTarget.email} has been removed.`,
-      });
-    } catch (/** @type {any} */ err) {
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to delete user',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeleting(false);
-      setDeleteTarget(null);
-    }
-  }
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-accent" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <AlertCircle className="w-8 h-8 text-destructive mb-3" />
-        <p className="text-sm text-destructive">{error}</p>
-        <button onClick={loadUsers} className="text-sm text-accent hover:underline mt-2">
-          Try again
-        </button>
-      </div>
-    );
+    return <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-secondary animate-pulse rounded-2xl" />)}</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-xl font-medium">Manage Users</h2>
-          <p className="text-sm text-muted-foreground">{users.length} registered user{users.length !== 1 ? 's' : ''}</p>
-        </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium hover:bg-accent transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add User
-        </button>
-      </div>
-
-      {/* Search + Filters Toolbar */}
-      <div className="bg-card border border-border rounded-sm p-4 space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Control Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by ID, email or role..."
-            className="w-full pl-9 pr-9 py-2 rounded-lg bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all"
+            placeholder="Search accounts by email..."
+            className="w-full pl-11 pr-4 py-2.5 rounded-full bg-card border border-border/80 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent shadow-soft"
           />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
-              aria-label="Clear search"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className={filterSelectClass}>
-            <option value="all">All Roles</option>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={filterSelectClass}>
-            <option value="all">All Statuses</option>
-            <option value="verified">Verified</option>
-            <option value="pending">Pending</option>
-          </select>
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="text-xs font-medium text-accent hover:underline inline-flex items-center gap-1"
-            >
-              <X className="w-3.5 h-3.5" /> Clear filters
-            </button>
-          )}
-          <span className="ml-auto text-xs text-muted-foreground">
-            Showing {filteredUsers.length} of {users.length} user{users.length !== 1 ? 's' : ''}
-          </span>
+
+<div className="flex items-center gap-3">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="admin">Admins</SelectItem>
+              <SelectItem value="user">Customers</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider hover:bg-accent hover:text-accent-foreground transition-all shadow-lift"
+          >
+            <Plus className="w-4 h-4" /> Add User
+          </button>
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">ID</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Email</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Role</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Created</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wider">Actions</th>
+      {/* Users Data Table */}
+      <div className="overflow-x-auto border border-border/80 rounded-3xl bg-card shadow-soft">
+        <table className="w-full text-xs min-w-[700px]">
+          <thead className="bg-secondary/60 border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+            <tr>
+              <th className="text-left px-5 py-4">Account Email</th>
+              <th className="text-left px-5 py-4">System Role</th>
+              <th className="text-left px-5 py-4">Verification</th>
+              <th className="text-left px-5 py-4">Created Date</th>
+              <th className="text-center px-5 py-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            {filteredUsers.map((u) => (
+              <tr key={u.id} className="hover:bg-secondary/30 transition-colors">
+                <td className="px-5 py-4 font-bold text-foreground">{u.email}</td>
+                <td className="px-5 py-4">
+<button
+                    onClick={() => handleRoleToggle(u)}
+                    className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border transition-all ${
+                      u.role === 'admin'
+                        ? 'bg-accent-soft text-accent border-accent/30'
+                        : 'bg-secondary text-muted-foreground border-border/60'
+                    }`}
+                  >
+                    {u.role}
+                  </button>
+                </td>
+<td className="px-5 py-4">
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${u.is_verified ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                    <UserCheck className="w-3.5 h-3.5" /> {u.is_verified ? 'Verified' : 'Pending'}
+                  </span>
+                  {!u.is_verified && (
+                    <button
+                      onClick={() => handleVerifyUser(u)}
+                      className="mt-1.5 block text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-accent/40 text-accent hover:bg-accent-soft transition-colors"
+                    >
+                      Verify Now
+                    </button>
+                  )}
+                </td>
+                <td className="px-5 py-4 text-muted-foreground font-medium">
+                  {u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN') : '—'}
+                </td>
+                <td className="px-5 py-4 text-center">
+                  <button onClick={() => handleDeleteUser(u)} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground text-sm">
-                    {users.length === 0 ? 'No users found.' : 'No users match your search / filters.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-secondary/30 transition-colors">
-                    <td className="px-4 py-3 text-muted-foreground">#{user.id}</td>
-                    <td className="px-4 py-3 font-medium">{user.email}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Shield className={`w-3.5 h-3.5 ${user.role === 'admin' ? 'text-accent' : 'text-muted-foreground'}`} />
-                        <select
-                          value={user.role}
-                          disabled={updatingRole === user.id}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                          className={`text-xs px-2 py-1 rounded border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50 ${user.role === 'admin' ? 'text-accent font-medium' : 'text-foreground'}`}
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                        {updatingRole === user.id && <Loader2 className="w-3 h-3 animate-spin text-accent" />}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {user.is_verified ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">Verified</span>
-                      ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 font-medium">Pending</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            onClick={() => setDeleteTarget(user)}
-                            className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
-                            aria-label="Delete user"
-                            title="Delete user"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete <strong>{deleteTarget?.email}</strong>? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleDelete}
-                              disabled={deleting}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              {deleting ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                  Deleting...
-                                </>
-                              ) : (
-                                'Delete'
-                              )}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
 
+{/* Add User Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setModalOpen(false)} />
-          <div className="relative bg-background border border-border rounded-sm w-full max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="font-display text-lg font-medium">Create New User</h3>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setModalOpen(false)}>
+          <div className="relative bg-card border border-border/80 rounded-3xl w-full max-w-md p-6 space-y-4 shadow-lift" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-border/60">
+              <h3 className="font-serif-display text-xl font-bold">Register New Account</h3>
               <button onClick={() => setModalOpen(false)}><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleCreateUser} className="space-y-4">
+
+            <form onSubmit={handleCreateUser} className="space-y-4 text-xs">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Email Address *</label>
+                <input required type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
               </div>
+
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Password *</label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Temporary Password *</label>
+                <input required type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Role</label>
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full px-3 py-2 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
+
+<div>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">System Role</label>
+                <Select value={newRole} onValueChange={setNewRole}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Customer</SelectItem>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
               <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="flex-1 border border-border py-2.5 rounded-full text-sm font-medium hover:bg-secondary transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="flex-1 bg-primary text-primary-foreground py-2.5 rounded-full text-sm font-medium hover:bg-accent transition-colors disabled:opacity-50"
-                >
-                  {creating ? 'Creating...' : 'Create User'}
-                </button>
+                <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border border-border/80 py-3 rounded-full font-semibold">Cancel</button>
+                <button type="submit" disabled={creating} className="flex-1 bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:bg-accent">{creating ? 'Creating...' : 'Create Account'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Branded Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!confirm}
+        onOpenChange={(open) => !open && setConfirm(null)}
+        title={
+          confirm?.type === 'delete'
+            ? 'Delete User'
+            : confirm?.type === 'verify'
+              ? 'Verify User'
+              : confirm?.type === 'role'
+                ? (confirm?.nextRole === 'admin' ? 'Promote to Administrator' : 'Demote to Customer')
+                : 'Confirm Action'
+        }
+        description={
+          confirm?.type === 'delete'
+            ? `Are you sure you want to permanently delete ${confirm.user.email}? This action cannot be undone.`
+            : confirm?.type === 'verify'
+              ? `Verify ${confirm.user.email} and bypass email verification?`
+              : confirm?.type === 'role'
+                ? `Are you sure you want to ${confirm?.nextRole === 'admin' ? 'promote' : 'demote'} ${confirm.user.email}?`
+                : ''
+        }
+        confirmLabel={
+          confirm?.type === 'delete'
+            ? 'Delete'
+            : confirm?.type === 'verify'
+              ? 'Verify'
+              : confirm?.type === 'role'
+                ? (confirm?.nextRole === 'admin' ? 'Promote' : 'Demote')
+                : 'Confirm'
+        }
+        destructive={confirm?.type === 'delete'}
+        loading={confirmLoading}
+        onConfirm={runConfirm}
+      />
     </div>
   );
 }

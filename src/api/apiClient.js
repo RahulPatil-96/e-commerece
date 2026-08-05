@@ -449,10 +449,16 @@ export const apiClient = {
         return request(`/users/${id}`);
       },
 
-      updateRole: async (/** @type {string | number} */ id, /** @type {string} */ role) => {
+updateRole: async (/** @type {string | number} */ id, /** @type {string} */ role) => {
         return request(`/users/${id}/role`, {
           method: 'PUT',
           body: JSON.stringify({ role }),
+        });
+      },
+
+      verify: async (/** @type {string | number} */ id) => {
+        return request(`/users/${id}/verify`, {
+          method: 'PUT',
         });
       },
 

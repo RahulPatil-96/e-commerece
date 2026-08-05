@@ -1,30 +1,40 @@
-import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 
-export default function Reveal({ children, className = '', delay = 0 }) {
-  const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
+export default function Reveal({
+  children,
+  className = '',
+  delay = 0,
+  y = 60,
+  blur = 8,
+  duration = 1.0,
+  once = true
+}) {
   return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: y,
+        rotateX: -12,
+        scale: 0.98,
+        filter: `blur(${blur}px)`,
+      }}
+      whileInView={{
+        opacity: 1,
+        y: 0,
+        rotateX: 0,
+        scale: 1,
+        filter: 'blur(0px)',
+      }}
+      viewport={{ once, margin: '-60px' }}
+      transition={{
+        duration,
+        delay: delay / 1000,
+        ease: [0.16, 1, 0.3, 1], // Power4.out equivalent cubic bezier
+      }}
+      className={className}
+      style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }

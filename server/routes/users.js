@@ -522,6 +522,25 @@ router.put('/:id/role', requireAdmin, async (req, res) => {
   }
 });
 
+// PUT /api/users/:id/verify — verify a user / bypass email verification (admin only)
+router.put('/:id/verify', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query(
+      'UPDATE users SET is_verified = TRUE WHERE id = $1 RETURNING id, email, role, is_verified, created_at',
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.json(result.rows[0]);
+  } catch (error) {
+    logger.error('Verify user error:', { error: error.message, stack: error.stack });
+    res.status(500).json({ message: 'Failed to verify user' });
+  }
+});
+
 // DELETE /api/users/:id — delete user (admin only)
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {

@@ -3,34 +3,20 @@ import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
 
 /**
- * Order receipt PDF generator.
+ * Order receipt PDF generator for Arihant Luxury Stationery.
  *
  * Renders a parcel-ready receipt as styled HTML (so the browser renders the ₹
  * rupee symbol and handles text layout), captures it at its NATURAL height with
- * html2canvas, then scales it to fit within a single A5 page. Because the
- * content height is measured (never clipped to a fixed box), rows can never
- * overlap — if content is taller than the page, it scales down to fit.
- *
- * Layout note:
- * All receipt sections use **generous spacing (padding/margins) above and below
- * every element** so html2canvas renders each block clearly without visual
- * overlap between rows and sections.
- *
- * Contains:
- *  - Customer details (name, phone, email)
- *  - Order details (items, totals, payment info, tracking)
- *  - Shipping address
- *  - A QR code (order id + customer info) for courier scanning
- *
- * File is downloaded as `Order-<id>-<customerName>.pdf`.
+ * html2canvas, then scales it to fit within a single A5 page.
  */
 
-const BRAND = 'Arihant Stationery';
-const ACCENT = '#c0522a'; // brand accent
-const DARK = '#1e140c';
-const MUTED = '#6e5f55';
-const LIGHT_FILL = '#f6f1ea';
-const LIGHT_LINE = '#e8e0d6';
+const BRAND = 'Arihant Luxury Stationery';
+const ACCENT = '#C7A451'; // Champagne Gold
+const FOREST = '#284B3D'; // Deep Forest Green
+const DARK = '#161616'; // Warm Charcoal
+const MUTED = '#6F6F6F'; // Secondary Text
+const LIGHT_FILL = '#F8F8F7'; // Warm White Secondary
+const LIGHT_LINE = '#E6E6E6'; // Hairline Border
 const WHITE = '#ffffff';
 
 const A5_W_MM = 148;
@@ -38,12 +24,20 @@ const A5_H_MM = 210;
 const A5_W_PX = 559; // 148mm @ 96dpi
 const SCALE = 2; // pixel ratio for crisp output
 
-/** Format ₹ with en-IN locale. */
-const inr = (/** @type {number | string | undefined} */ value) =>
+/**
+ * Format ₹ with en-IN locale.
+ * @param {number|string} value
+ * @returns {string}
+ */
+const inr = (value) =>
   `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
-/** Sanitize a string for use in a file name. */
-function safeFileName(/** @type {string} */ name) {
+/**
+ * Sanitize a string for use in a file name.
+ * @param {string} name
+ * @returns {string}
+ */
+function safeFileName(name) {
   return (name || '')
     .replace(/[^a-zA-Z0-9-_ ]/g, '')
     .replace(/\s+/g, '-')
@@ -52,8 +46,12 @@ function safeFileName(/** @type {string} */ name) {
     .slice(0, 50) || 'Customer';
 }
 
-/** Compact JSON payload embedded in the QR code. */
-function buildQrPayload(/** @type {Record<string, any>} */ order) {
+/**
+ * Compact JSON payload embedded in the QR code.
+ * @param {Record<string, any>} order
+ * @returns {string}
+ */
+function buildQrPayload(order) {
   try {
     return JSON.stringify({
       order_id: String(order.id),
@@ -69,8 +67,12 @@ function buildQrPayload(/** @type {Record<string, any>} */ order) {
   }
 }
 
-/** Human readable date (en-IN). */
-function formatDate(/** @type {string | undefined} */ dateStr) {
+/**
+ * Human readable date (en-IN).
+ * @param {string} dateStr
+ * @returns {string}
+ */
+function formatDate(dateStr) {
   if (!dateStr) return '';
   try {
     return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -83,20 +85,26 @@ function formatDate(/** @type {string | undefined} */ dateStr) {
   }
 }
 
-/** Minimal HTML escaping. */
-const esc = (/** @type {unknown} */ v) =>
+/**
+ * Minimal HTML escaping.
+ * @param {any} v
+ * @returns {string}
+ */
+const esc = (v) =>
   String(v ?? '')
     .replace(/&/g, '&amp;')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"');
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 
-/** Build the full receipt HTML string. Width is fixed to A5; height is natural. */
-function buildReceiptHtml(
-  /** @type {Record<string, any>} */ order,
-  /** @type {string | null} */ qrDataUrl,
-  /** @type {string} */ placed
-) {
+/**
+ * Build the full receipt HTML string. Width is fixed to A5; height is natural.
+ * @param {Record<string, any>} order
+ * @param {string | null} qrDataUrl
+ * @param {string} placed
+ * @returns {string}
+ */
+function buildReceiptHtml(order, qrDataUrl, placed) {
   const orderType = String(order.order_type || 'retail').toUpperCase();
   const items = Array.isArray(order.items) ? order.items : [];
   const subtotal = Number(order.subtotal || 0);
@@ -110,26 +118,40 @@ function buildReceiptHtml(
   const payMethod = String(order.payment_method || 'cod').toUpperCase();
 
   const itemsRowsHtml = items
-    .map((/** @type {Record<string, any>} */ item, index) => {
+    .map((item, index) => {
       const name = esc(item.name || 'Product');
       const qty = Number(item.qty || 1);
       const price = Number(item.price || 0);
       const lineTotal = qty * price;
-      const bg = index % 2 === 1 ? '#faf6f1' : '#ffffff';
-      let custom = '';
+      const bg = index % 2 === 1 ? '#FDFDFB' : '#FFFFFF';
+let custom = '';
       if (
         item.customization &&
         (item.customization.name || item.customization.text)
       ) {
-        custom = `<div style="font-size: 9px; color: ${ACCENT}; font-style: italic; font-weight: normal; margin-top: 3px; line-height: 1.3;">✦ ${esc(
-          item.customization.name || item.customization.text
-        )}</div>`;
+        const cus = item.customization;
+        const cusText = cus.name || cus.text || '';
+        const fontLabel = cus.font || '';
+        const colorValue = cus.color || '';
+        const colorSwatch = colorValue
+          ? `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${esc(
+              colorValue
+            )}; border:1px solid ${LIGHT_LINE}; vertical-align:middle; margin-right:4px;"></span>`
+          : '';
+        const details = [];
+        if (fontLabel) details.push(`Font: ${esc(fontLabel)}`);
+        if (colorValue) details.push(`Color: ${esc(colorValue)}`);
+        custom = `<div style="font-size: 9px; color: ${ACCENT}; font-style: italic; font-weight: 600; margin-top: 3px; line-height: 1.5;">✦ Personalization: "${esc(
+          cusText
+        )}"${details.length ? `<br/><span style="font-style:normal;">${colorSwatch}${esc(
+          details.join(' · ')
+        )}</span>` : ''}</div>`;
       }
       return (
-        `<tr style="background: ${bg}; border-top: 1px solid #f0e9e0;">` +
+        `<tr style="background: ${bg}; border-top: 1px solid ${LIGHT_LINE};">` +
         `<td style="padding: 10px 12px; font-size: 11px; font-weight: 600; color: ${DARK}; vertical-align: top; word-break: break-word; line-height: 1.4;">${name}${custom}</td>` +
         `<td style="padding: 10px 6px; font-size: 11px; color: ${DARK}; text-align: center; vertical-align: top; line-height: 1.4;">${qty}</td>` +
-        `<td style="padding: 10px 12px; font-size: 11px; font-weight: 600; color: ${DARK}; text-align: right; vertical-align: top; line-height: 1.4;">${inr(
+        `<td style="padding: 10px 12px; font-size: 11px; font-weight: 700; color: ${DARK}; text-align: right; vertical-align: top; line-height: 1.4;">${inr(
           lineTotal
         )}</td>` +
         `</tr>`
@@ -139,13 +161,13 @@ function buildReceiptHtml(
 
   const qrCell = qrDataUrl
     ? `<td style="padding: 16px 24px 16px 12px; vertical-align: top; text-align: center; width: 100px;">` +
-      `<img src="${qrDataUrl}" style="width: 72px; height: 72px; border: 1px solid ${LIGHT_LINE}; padding: 3px; background: ${WHITE}; display: block; margin: 0 auto;" alt="QR" />` +
-      `<div style="font-size: 7px; color: ${MUTED}; margin-top: 4px; line-height: 1.2; text-align: center;">Scan to verify order</div>` +
+      `<img src="${qrDataUrl}" style="width: 72px; height: 72px; border: 1px solid ${LIGHT_LINE}; border-radius: 8px; padding: 3px; background: ${WHITE}; display: block; margin: 0 auto;" alt="QR" />` +
+      `<div style="font-size: 7px; color: ${MUTED}; margin-top: 4px; line-height: 1.2; text-align: center; font-weight: 600;">Scan to Verify</div>` +
       `</td>`
     : '';
 
   const trackingHtml = order.tracking_number
-    ? `<div style="font-size: 11px; color: ${DARK}; margin-top: 6px; padding: 2px 0; line-height: 1.4;"><strong>Tracking:</strong> <span style="color: ${ACCENT}; font-weight: 600;">${esc(
+    ? `<div style="font-size: 11px; color: ${DARK}; margin-top: 6px; padding: 2px 0; line-height: 1.4;"><strong>Tracking Code:</strong> <span style="color: ${ACCENT}; font-weight: 700;">${esc(
         order.tracking_number
       )}</span></div>`
     : '';
@@ -153,20 +175,20 @@ function buildReceiptHtml(
   return `
 <div id="receipt" style="width:${A5_W_PX}px; background:${WHITE}; color:${DARK}; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; box-sizing:border-box; margin:0; padding:0; line-height:1.4; text-align:left;">
   <!-- Header -->
-  <table style="width:100%; border-collapse:collapse; background:${LIGHT_FILL}; border-bottom:2px solid ${ACCENT}; margin:0; padding:0;">
+  <table style="width:100%; border-collapse:collapse; background:${LIGHT_FILL}; border-bottom:3px solid ${ACCENT}; margin:0; padding:0;">
     <tr>
       <td style="padding:20px 0 20px 24px; vertical-align:top;">
-        <div style="font-family:Georgia, 'Times New Roman', serif; font-size:20px; font-weight:bold; color:${DARK}; line-height:1.2;">${BRAND}</div>
-        <div style="font-size:9px; color:${MUTED}; margin-top:3px; line-height:1.3;">Premium handcrafted stationery</div>
+        <div style="font-family:Georgia, 'Times New Roman', serif; font-size:22px; font-weight:bold; color:${FOREST}; line-height:1.2;">${BRAND}</div>
+        <div style="font-size:9px; color:${MUTED}; margin-top:3px; line-height:1.3; font-weight:500;">Crafted with Archival Precision · Premium Stationery</div>
         <div style="font-size:12px; font-weight:bold; color:${ACCENT}; margin-top:10px; letter-spacing:0.5px; line-height:1.3;">ORDER #${esc(
           order.id
         )}</div>
-        <div style="font-size:9px; color:${MUTED}; margin-top:3px; line-height:1.3;">Placed: ${placed}</div>
+        <div style="font-size:9px; color:${MUTED}; margin-top:3px; line-height:1.3;">Date Placed: ${placed}</div>
       </td>
       <td style="padding:20px 12px 20px 0; vertical-align:top; text-align:right;">
-        <div style="display:inline-block; background:${ACCENT}; color:${WHITE}; font-size:9px; font-weight:bold; letter-spacing:1px; padding:4px 12px; border-radius:12px; text-transform:uppercase; line-height:1.3;">${orderType}</div>
-        <div style="font-size:13px; font-weight:bold; color:${DARK}; margin-top:8px; letter-spacing:0.5px; line-height:1.3;">PACKING RECEIPT</div>
-        <div style="font-size:8px; color:${MUTED}; margin-top:3px; line-height:1.3;">Parcel slip · paste on package</div>
+        <div style="display:inline-block; background:${FOREST}; color:${WHITE}; font-size:9px; font-weight:bold; letter-spacing:1px; padding:4px 12px; border-radius:12px; text-transform:uppercase; line-height:1.3;">${orderType} SLIP</div>
+        <div style="font-size:13px; font-weight:bold; color:${DARK}; margin-top:8px; letter-spacing:0.5px; line-height:1.3;">PARCEL INVOICE</div>
+        <div style="font-size:8px; color:${MUTED}; margin-top:3px; line-height:1.3;">Official Tax Receipt &amp; Package Slip</div>
       </td>
       ${qrCell}
     </tr>
@@ -175,7 +197,7 @@ function buildReceiptHtml(
   <!-- Main Body -->
   <div style="padding:20px 24px 24px;">
     <!-- Customer & Delivery -->
-    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${ACCENT}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-bottom:12px; line-height:1.4;">Customer &amp; Delivery</div>
+    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${FOREST}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-bottom:12px; line-height:1.4;">Customer &amp; Dispatch Details</div>
     <table style="width:100%; border-collapse:collapse; table-layout:fixed; margin-bottom:16px;">
       <tr>
         <td style="width:50%; vertical-align:top; padding-right:12px;">
@@ -198,7 +220,7 @@ function buildReceiptHtml(
           }
         </td>
         <td style="width:50%; vertical-align:top; padding-left:12px;">
-          <div style="font-size:8px; font-weight:bold; color:${MUTED}; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; line-height:1.3;">Shipping Address</div>
+          <div style="font-size:8px; font-weight:bold; color:${MUTED}; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; line-height:1.3;">Shipping Destination</div>
           <div style="font-size:11px; line-height:1.5; color:${DARK}; word-break:break-word;">${esc(
             addressStr
           )}</div>
@@ -207,11 +229,11 @@ function buildReceiptHtml(
     </table>
 
     <!-- Order Items -->
-    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${ACCENT}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-top:16px; margin-bottom:12px; line-height:1.4;">Order Items</div>
-    <table style="width:100%; border-collapse:collapse; border:1px solid ${LIGHT_LINE}; border-radius:6px; overflow:hidden; table-layout:fixed; margin-bottom:16px;">
+    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${FOREST}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-top:16px; margin-bottom:12px; line-height:1.4;">Ordered Items</div>
+    <table style="width:100%; border-collapse:collapse; border:1px solid ${LIGHT_LINE}; border-radius:8px; overflow:hidden; table-layout:fixed; margin-bottom:16px;">
       <thead>
-        <tr style="background:${ACCENT}; color:${WHITE};">
-          <th style="padding:10px 12px; font-size:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; text-align:left; width:62%; line-height:1.3;">Item</th>
+        <tr style="background:${FOREST}; color:${WHITE};">
+          <th style="padding:10px 12px; font-size:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; text-align:left; width:62%; line-height:1.3;">Item Description</th>
           <th style="padding:10px 6px; font-size:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; text-align:center; width:14%; line-height:1.3;">Qty</th>
           <th style="padding:10px 12px; font-size:8px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; text-align:right; width:24%; line-height:1.3;">Amount</th>
         </tr>
@@ -226,14 +248,14 @@ function buildReceiptHtml(
       <tr>
         <td style="width:52%;"></td>
         <td style="width:48%; vertical-align:top;">
-          <table style="width:100%; border-collapse:collapse; border:1px solid ${LIGHT_LINE}; border-radius:6px; background:${WHITE};">
+          <table style="width:100%; border-collapse:collapse; border:1px solid ${LIGHT_LINE}; border-radius:8px; background:${WHITE}; overflow:hidden;">
             <tr>
               <td style="padding:8px 12px; font-size:11px; color:${DARK}; line-height:1.4;">Subtotal</td>
               <td style="padding:8px 12px; font-size:11px; color:${DARK}; text-align:right; font-weight:600; line-height:1.4;">${inr(
                 subtotal
               )}</td>
             </tr>
-<tr>
+            <tr>
               <td style="padding:4px 12px 8px; font-size:11px; color:${DARK}; line-height:1.4;">Shipping</td>
               <td style="padding:4px 12px 8px; font-size:11px; color:${DARK}; text-align:right; font-weight:600; line-height:1.4;">${inr(
                 shipping
@@ -247,9 +269,9 @@ function buildReceiptHtml(
             </tr>` : ''}
             <tr>
               <td colspan="2" style="padding:4px 6px 6px;">
-                <table style="width:100%; border-collapse:collapse; background:${LIGHT_FILL}; border:1px solid ${ACCENT}; border-radius:4px;">
+                <table style="width:100%; border-collapse:collapse; background:${LIGHT_FILL}; border:1px solid ${ACCENT}; border-radius:6px;">
                   <tr>
-                    <td style="padding:8px 10px; font-size:13px; font-weight:bold; color:${DARK}; line-height:1.3;">TOTAL</td>
+                    <td style="padding:8px 10px; font-size:13px; font-weight:bold; color:${DARK}; line-height:1.3;">GRAND TOTAL</td>
                     <td style="padding:8px 10px; font-size:13px; font-weight:bold; color:${ACCENT}; text-align:right; line-height:1.3;">${inr(
                       total
                     )}</td>
@@ -263,9 +285,9 @@ function buildReceiptHtml(
     </table>
 
     <!-- Payment -->
-    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${ACCENT}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-top:16px; margin-bottom:10px; line-height:1.4;">Payment</div>
+    <div style="font-size:9px; font-weight:bold; letter-spacing:1.5px; color:${FOREST}; text-transform:uppercase; border-bottom:1px solid ${LIGHT_LINE}; padding-bottom:4px; margin-top:16px; margin-bottom:10px; line-height:1.4;">Payment Status</div>
     <div style="font-size:11px; color:${DARK}; padding:2px 0; line-height:1.4;">
-      <strong>Method:</strong> ${payMethod}
+      <strong>Payment Method:</strong> ${payMethod}
     </div>
     ${trackingHtml}
   </div>
@@ -274,8 +296,8 @@ function buildReceiptHtml(
   <table style="width:100%; border-collapse:collapse; border-top:1px solid ${LIGHT_LINE}; background:${WHITE}; margin:0; padding:0;">
     <tr>
       <td style="padding:14px 24px; vertical-align:middle;">
-        <div style="font-family:Georgia, 'Times New Roman', serif; font-weight:bold; font-size:12px; color:${DARK}; line-height:1.3;">${BRAND}</div>
-        <div style="font-size:8px; color:${MUTED}; margin-top:2px; line-height:1.3;">Thank you for your order!</div>
+        <div style="font-family:Georgia, 'Times New Roman', serif; font-weight:bold; font-size:12px; color:${FOREST}; line-height:1.3;">${BRAND}</div>
+        <div style="font-size:8px; color:${MUTED}; margin-top:2px; line-height:1.3;">Thank you for partnering with Arihant!</div>
       </td>
       <td style="padding:14px 24px; vertical-align:middle; text-align:right;">
         <div style="font-size:10px; font-weight:bold; color:${DARK}; line-height:1.3;">Order #${esc(
@@ -288,14 +310,17 @@ function buildReceiptHtml(
 </div>`;
 }
 
-/** Wait for all <img> inside the container to finish loading. */
-async function waitForImages(/** @type {HTMLElement} */ root) {
+/**
+ * Wait for all <img> inside the container to finish loading.
+ * @param {HTMLElement} root
+ */
+async function waitForImages(root) {
   const images = Array.from(root.querySelectorAll('img'));
   await Promise.all(
-    images.map((/** @type {HTMLImageElement} */ img) => {
+    images.map((img) => {
       if (img.complete || img.naturalWidth > 0) return Promise.resolve();
-      return new Promise((resolve) => {
-        const timer = setTimeout(resolve, 500);
+      return new Promise((/** @type {(value?: any) => void} */ resolve) => {
+        const timer = setTimeout(() => resolve(), 500);
         img.onload = () => {
           clearTimeout(timer);
           resolve();
@@ -311,13 +336,10 @@ async function waitForImages(/** @type {HTMLElement} */ root) {
 
 /**
  * Generate a printable parcel receipt PDF for a single order.
- * @param {Record<string, any>} order  A formatted order object.
+ * @param {Record<string, any>} order A formatted order object.
  * @returns {Promise<{ doc: import('jspdf').jsPDF, fileName: string }>}
  */
-export async function generateOrderReceiptPdf(
-  /** @type {Record<string, any>} */ order
-) {
-  // --- QR code ---
+export async function generateOrderReceiptPdf(order) {
   let qrDataUrl = null;
   try {
     qrDataUrl = await QRCode.toDataURL(buildQrPayload(order), {
@@ -333,7 +355,6 @@ export async function generateOrderReceiptPdf(
   const placed = formatDate(order.created_date || order.created_at);
   const html = buildReceiptHtml(order, qrDataUrl, placed);
 
-  // --- Render off-screen HTML with html2canvas ---
   const container = document.createElement('div');
   container.style.position = 'absolute';
   container.style.left = '-9999px';
@@ -354,7 +375,6 @@ export async function generateOrderReceiptPdf(
       await document.fonts.ready;
     }
 
-    // Measure natural content height (no clipping → no overlap)
     const contentHeight = receiptEl.getBoundingClientRect().height;
 
     const canvas = await html2canvas(/** @type {HTMLElement} */ (receiptEl), {
@@ -375,7 +395,6 @@ export async function generateOrderReceiptPdf(
       compress: true,
     });
 
-    // Scale the captured image to fit within the A5 page, preserving aspect ratio.
     const imgWidthMm = A5_W_MM;
     const imgHeightMm = (canvas.height / canvas.width) * A5_W_MM;
     let finalW = imgWidthMm;
@@ -386,7 +405,7 @@ export async function generateOrderReceiptPdf(
       const scale = A5_H_MM / finalH;
       finalH = A5_H_MM;
       finalW = imgWidthMm * scale;
-      offsetX = (A5_W_MM - finalW) / 2; // center horizontally
+      offsetX = (A5_W_MM - finalW) / 2;
     }
 
     doc.addImage(imgData, 'JPEG', offsetX, 0, finalW, finalH);
@@ -403,11 +422,10 @@ export async function generateOrderReceiptPdf(
  * @param {Record<string, any>} order
  * @returns {Promise<string>} The downloaded file name.
  */
-export async function downloadOrderReceiptPdf(/** @type {Record<string, any>} */ order) {
+export async function downloadOrderReceiptPdf(order) {
   const { doc, fileName } = await generateOrderReceiptPdf(order);
   doc.save(fileName);
   return fileName;
 }
 
 export default downloadOrderReceiptPdf;
-

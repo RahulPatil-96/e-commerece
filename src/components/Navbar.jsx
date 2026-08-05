@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Menu, X, User, LogOut, Package, LayoutDashboard, UserCircle, Sparkles, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Menu, X, User, LogOut, Package, LayoutDashboard, UserCircle, Sparkles, ChevronRight, Volume2, VolumeX } from 'lucide-react';
 import { useCart } from '@/lib/cartContext';
 import { useAuth } from '@/lib/AuthContext';
+import { isSoundEnabled, toggleSound } from '@/lib/soundEffects';
 import SearchSuggestions from '@/components/SearchSuggestions';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -16,13 +17,14 @@ import {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
   const { count, mode, setMode } = useCart();
   const { user, isAuthenticated, logout, navigateToLogin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -31,7 +33,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: 'Shop', path: '/shop' },
-    // { label: 'Gift Builder', path: '/gift-builder' },
+    { label: 'Gift Builder', path: '/gift-builder' },
     { label: 'B2B / Wholesale', path: '/b2b' },
     { label: 'About', path: '/about' },
   ];
@@ -41,46 +43,61 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Announcement bar */}
-      <div className={`bg-primary text-primary-foreground overflow-hidden transition-all duration-500 ${showAnnouncement ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-center gap-2 text-xs md:text-[13px] tracking-wide">
+      {/* Top Announcement Bar */}
+      <div className={`bg-primary text-primary-foreground border-b border-white/10 overflow-hidden transition-all duration-500 ${showAnnouncement ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-center gap-2 text-xs md:text-[13px] tracking-wide font-medium">
           <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
-          <span className="truncate">Free shipping on orders above ₹999 · Extra 10% off with code <span className="font-semibold text-accent">ARIHANT10</span></span>
-          <Link to="/shop" className="hidden sm:inline-flex items-center gap-0.5 text-accent font-medium hover:underline shrink-0 ml-1">
-            Shop now <ChevronRight className="w-3.5 h-3.5" />
+          <span className="truncate">Complimentary Express Shipping on Orders Over ₹999 · Use code <span className="text-accent font-semibold">ARIHANT10</span></span>
+          <Link to="/shop" className="hidden sm:inline-flex items-center gap-0.5 text-accent font-semibold hover:underline shrink-0 ml-1">
+            Shop Collection <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
 
-      <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'glass shadow-lift' : 'bg-transparent'}`}>
+      {/* Floating Translucent Header */}
+      <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'py-3' : 'py-5'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-[4.5rem]">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 shrink-0 group">
-              <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-[hsl(27_87%_60%)] flex items-center justify-center shadow-glow transition-transform duration-300 group-hover:scale-105">
-                <span className="font-display text-lg font-bold text-white">A</span>
+          <div className={`flex items-center justify-between px-5 md:px-7 rounded-3xl transition-all duration-500 ${scrolled ? 'glass shadow-lift py-3' : 'bg-background/80 backdrop-blur-md border border-border/60 py-3.5 shadow-soft'}`}>
+            
+            {/* Brand Logo */}
+            <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
+              <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-accent via-[#D9B766] to-[#284B3D] flex items-center justify-center shadow-glow transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3">
+                <span className="font-serif-display text-lg font-bold text-white">A</span>
               </span>
-              <span className="font-display text-xl md:text-2xl font-medium tracking-tight">Arihant<span className="text-accent">.</span></span>
+              <div className="flex flex-col">
+                <span className="font-serif-display text-xl md:text-2xl font-bold tracking-tight text-foreground">
+                  Arihant<span className="text-accent font-sans">.</span>
+                </span>
+                <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground font-semibold -mt-1 hidden sm:block">
+                  Luxury Stationery
+                </span>
+              </div>
             </Link>
 
-            {/* Desktop nav */}
+            {/* Desktop Navigation Links */}
             <nav className="hidden md:flex items-center gap-7 lg:gap-9">
-              {navLinks.map(link => {
+              {navLinks.map((link) => {
                 const active = location.pathname === link.path;
                 return (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`relative text-sm font-medium tracking-wide transition-colors group py-2 ${active ? 'text-accent' : 'text-foreground/75 hover:text-foreground'}`}
+                    className={`relative text-xs lg:text-sm font-medium tracking-wide uppercase transition-colors group py-2 ${
+                      active ? 'text-accent font-semibold' : 'text-foreground/80 hover:text-foreground'
+                    }`}
                   >
                     {link.label}
-                    <span className={`absolute left-0 -bottom-0.5 h-0.5 rounded-full bg-accent transition-all duration-300 ${active ? 'w-full' : 'w-0 group-hover:w-full'}`} />
+                    <span
+                      className={`absolute left-0 -bottom-0.5 h-0.5 rounded-full bg-accent transition-all duration-300 ${
+                        active ? 'w-full' : 'w-0 group-hover:w-full'
+                      }`}
+                    />
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Desktop search with autocomplete suggestions */}
+            {/* Spotlight Search Bar */}
             <div className="hidden lg:block w-72">
               <SearchSuggestions
                 onSelect={(product) => {
@@ -90,108 +107,148 @@ export default function Navbar() {
               />
             </div>
 
-            {/* Right actions */}
+            {/* Actions: Mode Toggle, Cart, Account */}
             <div className="flex items-center gap-2 md:gap-3">
-              {/* Mode toggle */}
-              <div className="hidden sm:flex items-center bg-secondary/80 backdrop-blur rounded-full p-1 text-xs font-medium border border-border/60">
+              {/* Retail / Wholesale Mode Toggle */}
+              <div className="hidden sm:flex items-center bg-secondary rounded-full p-1 text-[11px] font-semibold border border-border/80 shadow-inner">
                 <button
                   onClick={() => setMode('retail')}
-                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${mode === 'retail' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${
+                    mode === 'retail'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
                   Retail
                 </button>
                 <button
                   onClick={() => setMode('wholesale')}
-                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${mode === 'wholesale' ? 'bg-accent text-accent-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'}`}
+                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${
+                    mode === 'wholesale'
+                      ? 'bg-accent text-accent-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 >
                   Wholesale
                 </button>
               </div>
 
-              <Link to="/cart" className="relative p-2.5 rounded-full hover:bg-accent-soft hover:text-accent transition-all duration-300" aria-label="Cart">
-                <ShoppingBag className="w-5 h-5" />
+              {/* Sound Design Toggle */}
+              <button
+                onClick={() => {
+                  const active = toggleSound();
+                  setSoundOn(active);
+                }}
+                className="hidden xl:flex p-2.5 rounded-full bg-secondary/80 border border-border/60 hover:bg-accent-soft hover:text-accent transition-all duration-300 shadow-soft text-foreground"
+                aria-label="Toggle tactile sound"
+                title={soundOn ? "Tactile Audio Active" : "Enable Tactile Audio"}
+              >
+                {soundOn ? <Volume2 className="w-4 h-4 text-accent" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+              </button>
+
+              {/* Cart Drawer Icon */}
+              <Link
+                to="/cart"
+                className="relative p-2.5 rounded-full bg-secondary/80 border border-border/60 hover:bg-accent-soft hover:text-accent hover:border-accent/40 transition-all duration-300 shadow-soft"
+                aria-label="Cart"
+                data-cursor-text="Cart"
+              >
+                <ShoppingBag className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
                 {count > 0 && (
-                  <span className="absolute top-0.5 right-0.5 bg-accent text-accent-foreground text-[10px] font-semibold w-[18px] h-[18px] rounded-full flex items-center justify-center shadow-glow">
+                  <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-glow animate-scale-in">
                     {count}
                   </span>
                 )}
               </Link>
 
-              {/* Profile icon */}
+              {/* User Account Menu */}
               {isAuthenticated && user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-0.5 rounded-full hover:ring-2 hover:ring-accent transition-all outline-none" aria-label="Account">
-                      <Avatar className="w-8 h-8 ring-2 ring-background shadow-md">
+                    <button className="p-0.5 rounded-full ring-2 ring-transparent hover:ring-accent transition-all outline-none" aria-label="Account">
+                      <Avatar className="w-8 h-8 md:w-9 md:h-9 shadow-soft">
                         {user.avatar ? (
                           <AvatarImage src={user.avatar} alt={user.name || 'User'} />
                         ) : (
-                          <AvatarFallback className="bg-gradient-to-br from-accent to-[hsl(27_87%_60%)] text-white text-sm font-semibold">
+                          <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs">
                             {(user.name || user.email || 'U').charAt(0).toUpperCase()}
                           </AvatarFallback>
                         )}
                       </Avatar>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 rounded-2xl shadow-lift">
-                    <div className="px-2 py-1.5">
-                      <p className="text-sm font-medium truncate">{user.name || 'User'}</p>
+                  <DropdownMenuContent align="end" className="w-60 rounded-3xl p-2 shadow-lift bg-card border-border/80">
+                    <div className="px-3 py-2">
+                      <p className="text-sm font-semibold truncate text-foreground">{user.name || 'User'}</p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/cart')} className="cursor-pointer rounded-xl">
-                      <ShoppingBag className="w-4 h-4 mr-2" />
+                    <DropdownMenuSeparator className="my-1 bg-border/60" />
+                    <DropdownMenuItem onClick={() => navigate('/cart')} className="cursor-pointer rounded-2xl p-2.5 text-xs font-medium">
+                      <ShoppingBag className="w-4 h-4 mr-2.5 text-accent" />
                       My Cart {count > 0 ? `(${count})` : ''}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer rounded-xl">
-                      <UserCircle className="w-4 h-4 mr-2" />
+                    <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer rounded-2xl p-2.5 text-xs font-medium">
+                      <UserCircle className="w-4 h-4 mr-2.5 text-accent" />
                       My Profile
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/orders')} className="cursor-pointer rounded-xl">
-                      <Package className="w-4 h-4 mr-2" />
+                    <DropdownMenuItem onClick={() => navigate('/orders')} className="cursor-pointer rounded-2xl p-2.5 text-xs font-medium">
+                      <Package className="w-4 h-4 mr-2.5 text-accent" />
                       My Orders
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer rounded-xl">
-                          <LayoutDashboard className="w-4 h-4 mr-2" />
+                        <DropdownMenuSeparator className="my-1 bg-border/60" />
+                        <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer rounded-2xl p-2.5 text-xs font-medium">
+                          <LayoutDashboard className="w-4 h-4 mr-2.5 text-accent" />
                           Admin Dashboard
                         </DropdownMenuItem>
                       </>
                     )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive rounded-xl">
-                      <LogOut className="w-4 h-4 mr-2" />
+                    <DropdownMenuSeparator className="my-1 bg-border/60" />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive rounded-2xl p-2.5 text-xs font-medium">
+                      <LogOut className="w-4 h-4 mr-2.5" />
                       Log out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <button onClick={navigateToLogin} className="p-2.5 rounded-full hover:bg-accent-soft hover:text-accent transition-all duration-300" aria-label="Sign in">
-                  <User className="w-5 h-5" />
+                <button
+                  onClick={navigateToLogin}
+                  className="p-2.5 rounded-full bg-secondary/80 border border-border/60 hover:bg-accent hover:text-accent-foreground transition-all duration-300 shadow-soft"
+                  aria-label="Sign in"
+                >
+                  <User className="w-4 h-4 md:w-5 md:h-5" />
                 </button>
               )}
 
-              <button className="md:hidden p-2.5 rounded-full hover:bg-accent-soft transition-colors" onClick={() => setOpen(!open)} aria-label="Menu">
-                {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {/* Mobile Menu Trigger */}
+              <button
+                className="md:hidden p-2.5 rounded-full bg-secondary border border-border/60 hover:bg-accent-soft transition-colors"
+                onClick={() => setOpen(!open)}
+                aria-label="Menu"
+              >
+                {open ? <X className="w-5 h-5 text-foreground" /> : <Menu className="w-5 h-5 text-foreground" />}
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile menu */}
+      {/* Mobile Drawer Menu */}
       {open && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/40 animate-fade-in" onClick={() => setOpen(false)}>
-          <div className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-background shadow-2xl animate-slide-in-right flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 h-16 border-b border-border">
-              <span className="font-display text-xl font-medium">Arihant<span className="text-accent">.</span></span>
-              <button onClick={() => setOpen(false)} className="p-2 rounded-full hover:bg-secondary" aria-label="Close">
+        <div className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setOpen(false)}>
+          <div
+            className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-card shadow-lift animate-slide-in-right flex flex-col border-l border-border/60"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 h-20 border-b border-border/60">
+              <span className="font-serif-display text-2xl font-bold">Arihant<span className="text-accent">.</span></span>
+              <button onClick={() => setOpen(false)} className="p-2.5 rounded-full bg-secondary hover:bg-accent-soft" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="px-5 pt-4">
+            
+            <div className="px-6 pt-5">
               <SearchSuggestions
                 onSelect={(product) => {
                   navigate(`/product/${product.id}`);
@@ -199,29 +256,40 @@ export default function Navbar() {
                 }}
               />
             </div>
-            <nav className="px-5 py-4 space-y-1 flex-1 overflow-y-auto">
-              {navLinks.map(link => (
+
+            <nav className="px-6 py-6 space-y-2 flex-1 overflow-y-auto">
+              {navLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${location.pathname === link.path ? 'bg-accent-soft text-accent' : 'text-foreground/80 hover:bg-secondary'}`}
+                  className={`block px-5 py-3.5 rounded-2xl text-sm font-medium transition-all ${
+                    location.pathname === link.path ? 'bg-accent text-accent-foreground font-semibold shadow-soft' : 'text-foreground/80 hover:bg-secondary'
+                  }`}
                 >
                   {link.label}
                 </Link>
               ))}
-              <div className="flex items-center gap-2 pt-4">
-                <button
-                  onClick={() => setMode('retail')}
-                  className={`flex-1 py-2.5 rounded-full text-xs font-medium transition-all ${mode === 'retail' ? 'bg-primary text-primary-foreground shadow-md' : 'bg-secondary text-muted-foreground'}`}
-                >
-                  Retail
-                </button>
-                <button
-                  onClick={() => setMode('wholesale')}
-                  className={`flex-1 py-2.5 rounded-full text-xs font-medium transition-all ${mode === 'wholesale' ? 'bg-accent text-accent-foreground shadow-md' : 'bg-secondary text-muted-foreground'}`}
-                >
-                  Wholesale
-                </button>
+
+              <div className="pt-6 border-t border-border/60">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 px-1">Pricing Mode</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setMode('retail')}
+                    className={`flex-1 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                      mode === 'retail' ? 'bg-primary text-primary-foreground shadow-soft' : 'bg-secondary text-muted-foreground'
+                    }`}
+                  >
+                    Retail Mode
+                  </button>
+                  <button
+                    onClick={() => setMode('wholesale')}
+                    className={`flex-1 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                      mode === 'wholesale' ? 'bg-accent text-accent-foreground shadow-soft' : 'bg-secondary text-muted-foreground'
+                    }`}
+                  >
+                    Wholesale Mode
+                  </button>
+                </div>
               </div>
             </nav>
           </div>
@@ -230,4 +298,3 @@ export default function Navbar() {
     </>
   );
 }
-

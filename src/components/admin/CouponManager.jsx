@@ -2,24 +2,9 @@ import { useEffect, useState } from 'react';
 import { Ticket, Plus, X, Trash2, Copy, Check, Loader2, AlertCircle, Wand2 } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-/**
- * @typedef {Object} Coupon
- * @property {number} id
- * @property {string} code
- * @property {string} description
- * @property {string} discount_type
- * @property {number} discount_value
- * @property {number | null} min_order_value
- * @property {number | null} max_uses
- * @property {number} current_uses
- * @property {string | null} valid_until
- * @property {boolean} is_active
- * @property {string} applicable_to
- * @property {string} created_at
- */
-
-const generateCode = (/** @type {number} */ len = 10) => {
+const generateCode = (len = 10) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   const seg1 = len / 2;
@@ -31,13 +16,12 @@ const generateCode = (/** @type {number} */ len = 10) => {
 };
 
 export default function CouponManager() {
-  /** @type {[Coupon[], import('react').Dispatch<import('react').SetStateAction<Coupon[]>>]} */
-  const [coupons, setCoupons] = useState(/** @type {Coupon[]} */ ([]));
+  const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [copied, setCopied] = useState(/** @type {string | null} */ (null));
+  const [copied, setCopied] = useState(null);
   const [form, setForm] = useState({
     code: '',
     description: '',
@@ -55,7 +39,7 @@ export default function CouponManager() {
     setError('');
     apiClient.entities.Coupon.list()
       .then(data => setCoupons(Array.isArray(data) ? data : []))
-      .catch(/** @param {any} err */ err => setError(err.message || 'Failed to load coupons'))
+      .catch(err => setError(err.message || 'Failed to load coupons'))
       .finally(() => setLoading(false));
   };
 
@@ -65,7 +49,7 @@ export default function CouponManager() {
     setForm(f => ({ ...f, code: generateCode() }));
   };
 
-  const handleCreate = async (/** @type {React.FormEvent} */ e) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
     setCreating(true);
     try {
@@ -92,44 +76,44 @@ export default function CouponManager() {
         applicable_to: 'all',
       });
       loadCoupons();
-    } catch (/** @param {any} err */ err) {
-      toast({ title: 'Failed to create coupon', description: err.message || 'Error creating coupon', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Failed to create coupon', description: err instanceof Error ? err.message : 'Error creating coupon', variant: 'destructive' });
     } finally {
       setCreating(false);
     }
   };
 
-  const handleToggle = async (/** @type {Coupon} */ coupon) => {
+  const handleToggle = async (coupon) => {
     try {
       await apiClient.entities.Coupon.update(coupon.id, { is_active: !coupon.is_active });
       toast({ title: coupon.is_active ? 'Coupon deactivated' : 'Coupon activated', description: coupon.code });
       loadCoupons();
-    } catch (/** @param {any} err */ err) {
-      toast({ title: 'Error', description: err.message || 'Failed to update coupon', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to update coupon', variant: 'destructive' });
     }
   };
 
-  const handleDelete = async (/** @type {Coupon} */ coupon) => {
+  const handleDelete = async (coupon) => {
     try {
       await apiClient.entities.Coupon.delete(coupon.id);
       toast({ title: 'Coupon deleted', description: coupon.code });
       loadCoupons();
-    } catch (/** @param {any} err */ err) {
-      toast({ title: 'Error', description: err.message || 'Failed to delete coupon', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed to delete coupon', variant: 'destructive' });
     }
   };
 
-  const handleCopy = async (/** @type {string} */ code) => {
+  const handleCopy = async (code) => {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(code);
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      // Clipboard unavailable
+      // ignore
     }
   };
 
-  const formatDate = (/** @type {string | null} */ dateStr) => {
+  const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     try {
       return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -138,8 +122,8 @@ export default function CouponManager() {
     }
   };
 
-  const isExpired = (/** @type {Coupon} */ c) => c.valid_until && new Date(c.valid_until) < new Date();
-  const isLimitReached = (/** @type {Coupon} */ c) => c.max_uses !== null && c.current_uses >= c.max_uses;
+  const isExpired = (c) => c.valid_until && new Date(c.valid_until) < new Date();
+  const isLimitReached = (c) => c.max_uses !== null && c.current_uses >= c.max_uses;
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-accent" /></div>;
@@ -149,30 +133,30 @@ export default function CouponManager() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <AlertCircle className="w-8 h-8 text-destructive mb-3" />
-        <p className="text-sm text-destructive">{error}</p>
-        <button onClick={loadCoupons} className="text-sm text-accent hover:underline mt-2">Try again</button>
+        <p className="text-xs text-destructive">{error}</p>
+        <button onClick={loadCoupons} className="text-xs text-accent hover:underline mt-2">Try again</button>
       </div>
     );
   }
 
-  const inputClass = 'w-full px-3 py-2.5 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent transition-all';
+  const inputClass = 'w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent';
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="font-display text-xl font-medium">Coupons & Discounts</h2>
-          <p className="text-sm text-muted-foreground">{coupons.length} coupon{coupons.length !== 1 ? 's' : ''} created</p>
+          <h2 className="font-serif-display text-2xl font-bold text-foreground">Coupons & Promotional Codes</h2>
+          <p className="text-xs text-muted-foreground">{coupons.length} active coupons registered</p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-sm font-medium hover:bg-accent transition-all duration-300 shadow-md hover:shadow-glow"
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider hover:bg-accent hover:text-accent-foreground transition-all shadow-lift"
         >
-          <Plus className="w-4 h-4" /> Generate Coupon
+          <Plus className="w-4 h-4" /> Generate New Coupon
         </button>
       </div>
 
-      {/* Summary chips */}
+      {/* Summary Chips */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Active', value: coupons.filter(c => c.is_active && !isExpired(c) && !isLimitReached(c)).length, color: 'text-emerald-600' },
@@ -180,75 +164,59 @@ export default function CouponManager() {
           { label: 'Expired', value: coupons.filter(isExpired).length, color: 'text-amber-600' },
           { label: 'Limit Reached', value: coupons.filter(c => isLimitReached(c) && !isExpired(c)).length, color: 'text-rose-600' },
         ].map((s, i) => (
-          <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-soft">
-            <p className={`font-display text-3xl font-medium ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+          <div key={i} className="bg-card border border-border/80 rounded-3xl p-6 shadow-soft">
+            <p className={`font-serif-display text-4xl font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Coupon list */}
+      {/* Coupon List */}
       {coupons.length === 0 ? (
-        <div className="text-center py-20 bg-card rounded-2xl border border-border/60 shadow-soft">
+        <div className="text-center py-20 bg-card rounded-3xl border border-border/80 shadow-soft">
           <Ticket className="w-14 h-14 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground">No coupons yet. Generate your first coupon to start driving sales.</p>
+          <p className="font-serif-display text-2xl font-bold">No Promotional Coupons</p>
+          <p className="text-xs text-muted-foreground mt-1">Generate discounts to reward high-volume corporate clients.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {coupons.map(c => {
+        <div className="space-y-4">
+          {coupons.map((c) => {
             const expired = isExpired(c);
             const limitReached = isLimitReached(c);
             return (
-              <div key={c.id} className={`bg-card border rounded-2xl p-5 shadow-soft transition-all hover:shadow-card ${expired || limitReached ? 'border-amber-300/60' : 'border-border/60'}`}>
+              <div key={c.id} className="bg-card border border-border/80 rounded-3xl p-6 shadow-soft hover:shadow-card transition-all">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4 min-w-0">
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`font-mono text-base font-bold tracking-wider px-4 py-2 rounded-xl border-2 border-dashed ${c.is_active && !expired && !limitReached ? 'text-accent border-accent bg-accent-soft' : 'text-muted-foreground border-border bg-secondary/50'}`}>
+                      <span className="font-mono text-sm font-bold tracking-widest px-4 py-2 rounded-2xl border-2 border-dashed border-accent/60 bg-accent-soft text-accent">
                         {c.code}
                       </span>
-                      <button
-                        onClick={() => handleCopy(c.code)}
-                        className="p-2 rounded-full hover:bg-secondary transition-colors"
-                        aria-label="Copy code"
-                        title="Copy code"
-                      >
+                      <button onClick={() => handleCopy(c.code)} className="p-2 rounded-full hover:bg-secondary">
                         {copied === c.code ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
                       </button>
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{c.description || 'No description'}</p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                        <span className={`px-2 py-0.5 rounded-full font-medium ${c.discount_type === 'percentage' ? 'bg-accent-soft text-accent' : 'bg-emerald-500/10 text-emerald-600'}`}>
-                          {c.discount_type === 'percentage' ? `${c.discount_value}% off` : `₹${Number(c.discount_value).toLocaleString('en-IN')} off`}
+                      <p className="font-bold text-foreground text-xs truncate">{c.description || 'No description provided'}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+                        <span className="px-3 py-1 rounded-full font-bold bg-accent-soft text-accent">
+                          {c.discount_type === 'percentage' ? `${c.discount_value}% OFF` : `₹${Number(c.discount_value).toLocaleString('en-IN')} OFF`}
                         </span>
-                        {c.min_order_value > 0 && <span className="px-2 py-0.5 rounded-full bg-secondary">Min ₹{Number(c.min_order_value).toLocaleString('en-IN')}</span>}
-                        {c.applicable_to !== 'all' && <span className="px-2 py-0.5 rounded-full bg-secondary capitalize">{c.applicable_to} only</span>}
-                        {c.max_uses !== null && <span className="px-2 py-0.5 rounded-full bg-secondary">{c.current_uses}/{c.max_uses} uses</span>}
-                        <span className="px-2 py-0.5 rounded-full bg-secondary">Until {formatDate(c.valid_until)}</span>
+                        {c.min_order_value > 0 && <span className="px-3 py-1 rounded-full bg-secondary border border-border/60 font-medium">Min ₹{Number(c.min_order_value).toLocaleString('en-IN')}</span>}
+                        {c.max_uses !== null && <span className="px-3 py-1 rounded-full bg-secondary border border-border/60 font-medium">{c.current_uses}/{c.max_uses} uses</span>}
+                        <span className="px-3 py-1 rounded-full bg-secondary border border-border/60 font-medium">Valid until {formatDate(c.valid_until)}</span>
                       </div>
                     </div>
                   </div>
+
                   <div className="flex items-center gap-2 shrink-0">
-                    {expired && <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 font-medium">Expired</span>}
-                    {limitReached && !expired && <span className="text-xs px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-600 font-medium">Used up</span>}
-                    {!expired && !limitReached && (
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${c.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-secondary text-muted-foreground'}`}>
-                        {c.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    )}
                     <button
                       onClick={() => handleToggle(c)}
                       disabled={expired}
-                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${expired ? 'opacity-40 cursor-not-allowed' : 'border-border hover:border-accent hover:text-accent'}`}
+                      className="text-xs font-semibold px-4 py-2 rounded-full border border-border/80 hover:border-accent hover:text-accent transition-colors"
                     >
                       {c.is_active ? 'Deactivate' : 'Activate'}
                     </button>
-                    <button
-                      onClick={() => handleDelete(c)}
-                      className="p-2 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      aria-label="Delete coupon"
-                      title="Delete coupon"
-                    >
+                    <button onClick={() => handleDelete(c)} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -259,79 +227,85 @@ export default function CouponManager() {
         </div>
       )}
 
-      {/* Create modal */}
+      {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setModalOpen(false)} />
-          <div className="relative bg-background border border-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-lift animate-fade-up">
-            <div className="flex items-center justify-between border-b border-border px-6 py-4 sticky top-0 bg-background/95 backdrop-blur z-10">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setModalOpen(false)}>
+          <div
+            className="relative bg-card border border-border/80 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-lift animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 sticky top-0 bg-card z-10">
               <div className="flex items-center gap-2">
                 <Ticket className="w-5 h-5 text-accent" />
-                <h3 className="font-display text-lg font-medium">Generate Coupon</h3>
+                <h3 className="font-serif-display text-xl font-bold">Generate Coupon Code</h3>
               </div>
               <button onClick={() => setModalOpen(false)} className="p-2 rounded-full hover:bg-secondary"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
+
+            <form onSubmit={handleCreate} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Coupon Code *</label>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Code *</label>
                 <div className="flex gap-2">
                   <input
                     required
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                    placeholder="SAVE10"
+                    placeholder="E.G. ARIHANT10"
                     className={`${inputClass} font-mono uppercase tracking-wider`}
                   />
                   <button
                     type="button"
                     onClick={handleGenerate}
-                    className="inline-flex items-center gap-1.5 shrink-0 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-secondary hover:border-accent transition-all"
-                    title="Generate random code"
+                    className="inline-flex items-center gap-1.5 shrink-0 px-4 py-3 rounded-2xl border border-border/80 font-semibold hover:bg-secondary"
                   >
-                    <Wand2 className="w-4 h-4 text-accent" /> Generate
+                    <Wand2 className="w-4 h-4 text-accent" /> Auto Generate
                   </button>
                 </div>
               </div>
+
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Description</label>
                 <input
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="e.g. Festival sale discount"
+                  placeholder="e.g. Festival wholesale discount"
                   className={inputClass}
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Discount Type</label>
-                  <select
+<div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Discount Type</label>
+                  <Select
                     value={form.discount_type}
-                    onChange={(e) => setForm({ ...form, discount_type: e.target.value })}
-                    className={inputClass}
+                    onValueChange={(val) => setForm({ ...form, discount_type: val })}
                   >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed (₹)</option>
-                  </select>
+                    <SelectTrigger className={`${inputClass}`}>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                    {form.discount_type === 'percentage' ? 'Discount Value (%) *' : 'Discount Value (₹) *'}
-                  </label>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Value *</label>
                   <input
                     required
                     type="number"
                     min="0"
-                    max={form.discount_type === 'percentage' ? 100 : undefined}
                     value={form.discount_value}
                     onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
-                    placeholder={form.discount_type === 'percentage' ? '10' : '100'}
+                    placeholder="10"
                     className={inputClass}
                   />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Min Order Value (₹)</label>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Min Order (₹)</label>
                   <input
                     type="number"
                     min="0"
@@ -342,7 +316,7 @@ export default function CouponManager() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Max Uses</label>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Max Usage Limit</label>
                   <input
                     type="number"
                     min="1"
@@ -353,44 +327,10 @@ export default function CouponManager() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Valid Until</label>
-                  <input
-                    type="date"
-                    value={form.valid_until}
-                    onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Applies To</label>
-                  <select
-                    value={form.applicable_to}
-                    onChange={(e) => setForm({ ...form, applicable_to: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option value="all">All Orders</option>
-                    <option value="retail">Retail Only</option>
-                    <option value="wholesale">Wholesale Only</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="flex-1 border border-border py-2.5 rounded-full text-sm font-medium hover:bg-secondary transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="flex-1 bg-primary text-primary-foreground py-2.5 rounded-full text-sm font-medium hover:bg-accent transition-colors disabled:opacity-50"
-                >
-                  {creating ? 'Creating...' : 'Create Coupon'}
-                </button>
+
+              <div className="flex gap-3 pt-4 border-t border-border/60">
+                <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border border-border/80 py-3 rounded-full font-semibold hover:bg-secondary">Cancel</button>
+                <button type="submit" disabled={creating} className="flex-1 bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:bg-accent">{creating ? 'Creating...' : 'Create Coupon'}</button>
               </div>
             </form>
           </div>
@@ -399,4 +339,3 @@ export default function CouponManager() {
     </div>
   );
 }
-

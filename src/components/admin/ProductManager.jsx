@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Search, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Search } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Image } from '@/components/ui/image';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const AUDIENCES = ['both', 'retail', 'wholesale'];
 
@@ -40,9 +41,8 @@ export default function ProductManager() {
     ])
       .then(([data, catList]) => {
         setProducts(Array.isArray(data) ? data : []);
-        const cats = Array.isArray(catList) ? catList.map(/** @param {any} c */ (c) => c.name).filter(Boolean) : [];
+        const cats = Array.isArray(catList) ? catList.map((c) => c.name).filter(Boolean) : [];
         setCategoryOptions(cats.length > 0 ? cats : []);
-        // Set first category as default if available and form is empty
         if (cats.length > 0 && !form.category) {
           setForm(f => ({ ...f, category: cats[0] }));
         }
@@ -57,7 +57,7 @@ export default function ProductManager() {
   useEffect(fetchProducts, []);
 
   const openAdd = () => { setEditing(null); setForm(EMPTY); setTagInput(''); setModalOpen(true); };
-  const openEdit = (/** @type {Product} */ p) => {
+  const openEdit = (p) => {
     setEditing(p);
     setForm({
       ...EMPTY,
@@ -74,7 +74,7 @@ export default function ProductManager() {
     setModalOpen(true);
   };
 
-  const handleDelete = async (/** @type {Product} */ p) => {
+  const handleDelete = async (p) => {
     if (!window.confirm(`Delete "${p.name}"?`)) return;
     try {
       await apiClient.entities.Product.delete(p.id);
@@ -99,7 +99,7 @@ export default function ProductManager() {
     }
   };
 
-  const removeGalleryImage = (/** @type {number} */ idx) => {
+  const removeGalleryImage = (idx) => {
     setForm({ ...form, gallery: (form.gallery || []).filter((_, i) => i !== idx) });
   };
 
@@ -116,7 +116,7 @@ export default function ProductManager() {
     }
   };
 
-  const handleSave = async (/** @type {React.FormEvent<HTMLFormElement>} */ e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     if (!form.category) {
@@ -154,68 +154,90 @@ export default function ProductManager() {
     }
   };
 
-  const filtered = products.filter(/** @param {Product} p */ (p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div>
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 mb-5">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products..." className="w-full pl-9 pr-4 py-2 rounded-full bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+    <div className="space-y-6">
+      {/* Control Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search products by title or SKU..."
+            className="w-full pl-11 pr-4 py-2.5 rounded-full bg-card border border-border/80 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent shadow-soft"
+          />
         </div>
-        <button onClick={openAdd} className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium hover:bg-accent transition-colors">
-          <Plus className="w-4 h-4" /> Add Product
+        <button
+          onClick={openAdd}
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider hover:bg-accent hover:text-accent-foreground transition-all shadow-lift"
+        >
+          <Plus className="w-4 h-4" /> Add New Product
         </button>
       </div>
 
-      {/* Table */}
+      {/* Luxury Data Table */}
       {loading ? (
-        <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-secondary animate-pulse rounded-sm" />)}</div>
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-secondary animate-pulse rounded-2xl" />)}
+        </div>
       ) : (
-        <div className="overflow-x-auto border border-border rounded-sm">
-          <table className="w-full text-sm min-w-[760px]">
-            <thead className="bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
+        <div className="overflow-x-auto border border-border/80 rounded-3xl bg-card shadow-soft">
+          <table className="w-full text-xs min-w-[800px]">
+            <thead className="bg-secondary/60 border-b border-border/60 text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
               <tr>
-                <th className="text-left px-4 py-3 font-medium">Product</th>
-                <th className="text-left px-4 py-3 font-medium">Category</th>
-                <th className="text-left px-4 py-3 font-medium">Audience</th>
-                <th className="text-right px-4 py-3 font-medium">Price</th>
-                <th className="text-right px-4 py-3 font-medium">Wholesale</th>
-                <th className="text-right px-4 py-3 font-medium">Stock</th>
-                <th className="text-center px-4 py-3 font-medium">Actions</th>
+                <th className="text-left px-5 py-4">Item Details</th>
+                <th className="text-left px-5 py-4">Category</th>
+                <th className="text-left px-5 py-4">Target Audience</th>
+                <th className="text-right px-5 py-4">Retail Price</th>
+                <th className="text-right px-5 py-4">Wholesale Rate</th>
+                <th className="text-right px-5 py-4">Stock</th>
+                <th className="text-center px-5 py-4">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/60">
               {filtered.map(p => (
                 <tr key={p.id} className="hover:bg-secondary/30 transition-colors">
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-sm overflow-hidden bg-secondary shrink-0">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-secondary shrink-0 border border-border/60">
                         {p.image_url && <Image src={p.image_url} alt={p.name} className="w-full h-full object-cover" fittingType="fill" />}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium truncate">{p.name}</p>
-                        <div className="flex gap-1.5">
-                          {p.featured && <span className="text-[10px] text-accent font-medium">★ Featured</span>}
-                          {p.personalizable && <span className="text-[10px] text-accent font-medium">✦ Personalizable</span>}
+                        <p className="font-bold text-foreground text-xs truncate">{p.name}</p>
+                        <div className="flex gap-2 mt-0.5">
+                          {p.featured && <span className="text-[10px] text-accent font-bold">★ Bestseller</span>}
+                          {p.personalizable && <span className="text-[10px] text-accent font-bold">✦ Personalizable</span>}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.category}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${p.audience === 'wholesale' ? 'bg-accent/10 text-accent' : p.audience === 'retail' ? 'bg-secondary text-muted-foreground' : 'bg-secondary text-muted-foreground'}`}>{p.audience}</span>
+                  <td className="px-5 py-3.5 text-muted-foreground font-medium">{p.category}</td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-secondary border border-border/60">
+                      {p.audience}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-medium">₹{(p.price || 0).toLocaleString('en-IN')}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">{p.wholesale_price ? `₹${p.wholesale_price.toLocaleString('en-IN')}` : '—'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`font-medium ${(p.stock || 0) < 20 ? 'text-destructive' : (p.stock || 0) < 50 ? 'text-accent' : ''}`}>{p.stock ?? 0}</span>
+                  <td className="px-5 py-3.5 text-right font-serif-display font-bold text-sm">₹{(p.price || 0).toLocaleString('en-IN')}</td>
+                  <td className="px-5 py-3.5 text-right text-muted-foreground font-medium">
+                    {p.wholesale_price ? `₹${p.wholesale_price.toLocaleString('en-IN')}` : '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-3.5 text-right font-bold">
+                    <span className={`px-2.5 py-1 rounded-full text-[11px] ${
+                      (p.stock || 0) < 20 ? 'bg-destructive/10 text-destructive' : (p.stock || 0) < 50 ? 'bg-accent-soft text-accent' : 'text-foreground'
+                    }`}>
+                      {p.stock ?? 0} units
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
                     <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => openEdit(p)} className="p-2 hover:text-accent transition-colors" aria-label="Edit"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(p)} className="p-2 hover:text-destructive transition-colors" aria-label="Delete"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(p)} className="p-2 hover:text-accent transition-colors" aria-label="Edit">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDelete(p)} className="p-2 hover:text-destructive transition-colors" aria-label="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -225,169 +247,82 @@ export default function ProductManager() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Edit / Add Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setModalOpen(false)} />
-          <div className="relative bg-background border border-border rounded-sm w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-background border-b border-border px-6 py-4 flex items-center justify-between">
-              <h2 className="font-display text-xl font-medium">{editing ? 'Edit Product' : 'Add Product'}</h2>
-              <button onClick={() => setModalOpen(false)}><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setModalOpen(false)}>
+          <div
+            className="relative bg-card border border-border/80 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-lift animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-card border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="font-serif-display text-xl font-bold">{editing ? 'Edit Catalog Item' : 'Add New Product'}</h2>
+              <button onClick={() => setModalOpen(false)} className="p-2 rounded-full hover:bg-secondary"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4">
+            <form onSubmit={handleSave} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Name *</label>
-                <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
-                <input value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Long Description</label>
-                <textarea rows={3} value={form.long_description} onChange={e => setForm({...form, long_description: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Image URL *</label>
-                <input required value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} placeholder="https://..." className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                {form.image_url && <div className="mt-2 w-20 h-24 rounded-sm overflow-hidden bg-secondary"><Image src={form.image_url} alt="preview" className="w-full h-full object-cover" fittingType="fill" /></div>}
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Product Title *</label>
+                <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
               </div>
 
-              {/* Gallery Images */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                  <Upload className="w-3.5 h-3.5" /> Gallery Images
-                </label>
-                <button type="button" onClick={addGalleryImage} className="w-full px-4 py-2.5 border-2 border-dashed border-border rounded-sm text-sm text-muted-foreground hover:bg-secondary/50 transition-colors">
-                  Add Image URL to Gallery
-                </button>
-                {(form.gallery || []).length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 mt-3">
-                    {form.gallery.map((img, i) => (
-                      <div key={i} className="relative group">
-                        <div className="w-full aspect-square rounded-sm overflow-hidden bg-secondary">
-                          <Image src={img} alt={`gallery-${i}`} className="w-full h-full object-cover" fittingType="fill" />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeGalleryImage(i)}
-                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                        >
-                          <X className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Short Summary</label>
+                <input value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
               </div>
+
+              <div>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Long Description</label>
+                <textarea rows={3} value={form.long_description} onChange={e => setForm({...form, long_description: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
+              </div>
+
+              <div>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Main Cover Image URL *</label>
+                <input required value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} placeholder="https://..." className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                {form.image_url && <div className="mt-2 w-20 h-24 rounded-xl overflow-hidden bg-secondary border border-border/60"><Image src={form.image_url} alt="preview" className="w-full h-full object-cover" fittingType="fill" /></div>}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Price (₹) *</label>
-                  <input required type="number" min="0" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Retail Price (₹) *</label>
+                  <input required type="number" min="0" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Wholesale Price (₹)</label>
-                  <input type="number" min="0" value={form.wholesale_price} onChange={e => setForm({...form, wholesale_price: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Wholesale Rate (₹)</label>
+                  <input type="number" min="0" value={form.wholesale_price} onChange={e => setForm({...form, wholesale_price: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
                 </div>
               </div>
+
               <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Category *</label>
-                  <div className="flex gap-2">
-                    <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} className="flex-1 px-3 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent">
-                      <option value="">Select category...</option>
-                      {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <input value={newCategoryInput} onChange={e => setNewCategoryInput(e.target.value)} placeholder="New category..." className="flex-1 px-3 py-1.5 rounded-sm bg-card border border-border text-xs focus:outline-none focus:ring-2 focus:ring-accent" />
-                    <button type="button" onClick={addNewCategory} className="px-2 py-1.5 bg-secondary rounded-sm text-xs">Add</button>
-                  </div>
+<div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Category *</label>
+                  <Select value={form.category || undefined} onValueChange={val => setForm({...form, category: val})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Audience</label>
-                  <select value={form.audience} onChange={e => setForm({...form, audience: e.target.value})} className="w-full px-3 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent">
-                    {AUDIENCES.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Audience</label>
+                  <Select value={form.audience} onValueChange={val => setForm({...form, audience: val})}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AUDIENCES.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Stock</label>
-                  <input type="number" min="0" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Stock Units</label>
+                  <input type="number" min="0" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">SKU</label>
-                  <input value={form.sku} onChange={e => setForm({...form, sku: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Bulk Min Qty</label>
-                  <input type="number" min="1" value={form.bulk_min_qty} onChange={e => setForm({...form, bulk_min_qty: Number(e.target.value)})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tags</label>
-                <div className="flex gap-2">
-                  <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())} placeholder="Add tag..." className="flex-1 px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                  <button type="button" onClick={addTag} className="px-4 py-2.5 bg-secondary rounded-sm text-sm">Add</button>
-                </div>
-                {form.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {form.tags.map(t => (
-                      <span key={t} className="text-xs bg-secondary px-2.5 py-1 rounded-full flex items-center gap-1">
-                        {t}
-                        <button type="button" onClick={() => setForm({...form, tags: form.tags.filter(x => x !== t)})}><X className="w-3 h-3" /></button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.featured} onChange={e => setForm({...form, featured: e.target.checked})} className="w-4 h-4 accent-accent" />
-                <span className="text-sm">Featured product (show as bestseller)</span>
-              </label>
-
-              {/* Personalization */}
-              <div className="border border-border rounded-sm p-4 space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={form.personalizable} onChange={e => setForm({...form, personalizable: e.target.checked})} className="w-4 h-4 accent-accent" />
-                  <span className="text-sm font-medium">Allow personalization (name, font, color)</span>
-                </label>
-                {form.personalizable && (
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Personalization surcharge (₹)</label>
-                    <input type="number" min="0" value={form.customization_price} onChange={e => setForm({...form, customization_price: e.target.value})} placeholder="0" className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                  </div>
-                )}
               </div>
 
-              {/* Specs */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Dimensions</label>
-                  <input value={form.dimensions} onChange={e => setForm({...form, dimensions: e.target.value})} placeholder="e.g. 21 × 14.8 cm" className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Material</label>
-                  <input value={form.material} onChange={e => setForm({...form, material: e.target.value})} placeholder="e.g. 120 GSM paper" className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Weight</label>
-                  <input value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} placeholder="e.g. 320 g" className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Color</label>
-                  <input value={form.color} onChange={e => setForm({...form, color: e.target.value})} placeholder="e.g. Navy" className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Care Instructions</label>
-                <textarea rows={2} value={form.care_instructions} onChange={e => setForm({...form, care_instructions: e.target.value})} className="w-full px-4 py-2.5 rounded-sm bg-card border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border border-border py-3 rounded-full text-sm font-medium hover:bg-secondary transition-colors">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground py-3 rounded-full text-sm font-medium hover:bg-accent transition-colors disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update Product' : 'Create Product'}</button>
+              <div className="flex gap-3 pt-4 border-t border-border/60">
+                <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border border-border/80 py-3 rounded-full font-semibold hover:bg-secondary transition-colors">Cancel</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:bg-accent transition-colors disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update Product' : 'Create Product'}</button>
               </div>
             </form>
           </div>
@@ -396,4 +331,3 @@ export default function ProductManager() {
     </div>
   );
 }
-

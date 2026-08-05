@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Loader2, Save, Plus, X } from 'lucide-react';
+import { Save, Plus, X } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
 
 const SECTIONS = [
   { key: 'shop_material_options', label: 'Shop Material Options', type: 'material_options' },
@@ -25,13 +24,11 @@ const EMPTY_ITEM = {
   about_stats: { num: '', label: '' },
 };
 
-const LIGHT_COLORS = ['White', 'Beige', 'Silver', 'Gold'];
-
 export default function SiteContentManager() {
   const { toast } = useToast();
-  const [content, setContent] = useState(/** @type {Record<string, any[]>} */({}));
+  const [content, setContent] = useState({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(/** @type {Record<string, boolean>} */({}));
+  const [saving, setSaving] = useState({});
   const [activeSection, setActiveSection] = useState(SECTIONS[0].key);
 
   useEffect(() => {
@@ -42,7 +39,7 @@ export default function SiteContentManager() {
     setLoading(true);
     try {
       const data = await apiClient.entities.SiteContent.getAll();
-      setContent(data);
+      setContent(data || {});
     } catch (err) {
       toast({ title: 'Failed to load site content', variant: 'destructive' });
     } finally {
@@ -50,12 +47,12 @@ export default function SiteContentManager() {
     }
   }
 
-  const getValue = (/** @type {string} */ key) => {
+  const getValue = (key) => {
     const val = content[key];
     return Array.isArray(val) ? val : [];
   };
 
-  const updateItem = (/** @type {string} */ sectionKey, /** @type {number} */ index, /** @type {string} */ field, /** @type {any} */ value) => {
+  const updateItem = (sectionKey, index, field, value) => {
     setContent(prev => {
       const arr = [...(Array.isArray(prev[sectionKey]) ? prev[sectionKey] : [])];
       if (!arr[index]) return prev;
@@ -64,348 +61,130 @@ export default function SiteContentManager() {
     });
   };
 
-  const addItem = (/** @type {string} */ sectionKey) => {
+  const addItem = (sectionKey) => {
     const section = SECTIONS.find(s => s.key === sectionKey);
     if (!section) return;
-    const template = /** @type {Record<string, any>} */(EMPTY_ITEM)[section.type] || {};
-    setContent(prev => ({
-      ...prev,
-      [sectionKey]: [...(Array.isArray(prev[sectionKey]) ? prev[sectionKey] : []), { ...template }],
-    }));
+    const template = EMPTY_ITEM[section.type] || {};
+    setContent(prev => {
+      const arr = [...(Array.isArray(prev[sectionKey]) ? prev[sectionKey] : [])];
+      return { ...prev, [sectionKey]: [...arr, { ...template }] };
+    });
   };
 
-  const removeItem = (/** @type {string} */ sectionKey, /** @type {number} */ index) => {
-    setContent(prev => ({
-      ...prev,
-      [sectionKey]: (Array.isArray(prev[sectionKey]) ? prev[sectionKey] : []).filter((_, i) => i !== index),
-    }));
+  const removeItem = (sectionKey, index) => {
+    setContent(prev => {
+      const arr = [...(Array.isArray(prev[sectionKey]) ? prev[sectionKey] : [])];
+      arr.splice(index, 1);
+      return { ...prev, [sectionKey]: arr };
+    });
   };
 
-  const handleSave = async (/** @type {string} */ sectionKey) => {
-    setSaving(prev => ({ ...prev, [sectionKey]: true }));
+  const handleSaveSection = async (key) => {
+    setSaving(prev => ({ ...prev, [key]: true }));
     try {
-      await apiClient.entities.SiteContent.update(sectionKey, content[sectionKey] || []);
-      toast({ title: `${SECTIONS.find(s => s.key === sectionKey)?.label} saved` });
+      const arr = getValue(key);
+      await apiClient.entities.SiteContent.set(key, arr);
+      toast({ title: 'Saved successfully', description: `${key} updated.` });
     } catch (err) {
-      toast({ title: 'Failed to save', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+      toast({ title: 'Failed to save', description: err instanceof Error ? err.message : 'Error updating content', variant: 'destructive' });
     } finally {
-      setSaving(prev => ({ ...prev, [sectionKey]: false }));
+      setSaving(prev => ({ ...prev, [key]: false }));
     }
-  };
-
-  const renderColorSwatchPreview = (/** @type {string} */ color) => {
-    if (!color) return '#ccc';
-    const swatches = content['shop_color_swatches'];
-    if (Array.isArray(swatches)) {
-      const found = swatches.find(s => s.label === color);
-      if (found) return found.value;
-    }
-    return '#ccc';
-  };
-
-  const isLightColor = (/** @type {string} */ colorName) => LIGHT_COLORS.includes(colorName);
-
-  const renderSection = (/** @type {typeof SECTIONS[0]} */ section) => {
-    const items = getValue(section.key);
-
-    if (section.type === 'material_options') {
-      return (
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-start gap-3 bg-secondary/30 rounded-sm p-4">
-              <div className="flex-1 space-y-2">
-                <input
-                  value={item.label || ''}
-                  onChange={(e) => updateItem(section.key, i, 'label', e.target.value)}
-                  placeholder="Label (e.g. Paper)"
-                  className="w-full px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-                <input
-                  value={(item.match || []).join(', ')}
-                  onChange={(e) => updateItem(section.key, i, 'match', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                  placeholder="Keywords to match (comma separated, e.g. paper, cardstock)"
-                  className="w-full px-3 py-2 rounded-sm border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-              <button onClick={() => removeItem(section.key, i)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (section.type === 'color_swatches') {
-      return (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-2 bg-secondary/30 rounded-sm p-3">
-              <input
-                type="color"
-                value={item.value || '#000000'}
-                onChange={(e) => updateItem(section.key, i, 'value', e.target.value)}
-                className="w-10 h-10 rounded cursor-pointer border border-border bg-background shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <input
-                  value={item.label || ''}
-                  onChange={(e) => updateItem(section.key, i, 'label', e.target.value)}
-                  placeholder="Color name"
-                  className="w-full px-2 py-1.5 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent mb-1"
-                />
-                <input
-                  value={item.value || ''}
-                  onChange={(e) => updateItem(section.key, i, 'value', e.target.value)}
-                  placeholder="#hex"
-                  className="w-full px-2 py-1 rounded-sm border border-border bg-background text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-              <button onClick={() => removeItem(section.key, i)} className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (section.type === 'string_list') {
-      return (
-        <div className="space-y-2">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-2 bg-secondary/30 rounded-sm px-4 py-2">
-              <input
-                value={typeof item === 'string' ? item : item.label || item.name || ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setContent(prev => {
-                    const arr = [...(Array.isArray(prev[section.key]) ? prev[section.key] : [])];
-                    arr[i] = typeof item === 'string' ? val : { ...item, label: val, name: val };
-                    return { ...prev, [section.key]: arr };
-                  });
-                }}
-                placeholder="Enter value..."
-                className="flex-1 px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <button onClick={() => removeItem(section.key, i)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (section.type === 'packaging') {
-      return (
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="bg-secondary/30 rounded-sm p-4 space-y-2">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 grid grid-cols-2 gap-2">
-                  <input
-                    value={item.id || ''}
-                    onChange={(e) => updateItem(section.key, i, 'id', e.target.value)}
-                    placeholder="ID (e.g. classic)"
-                    className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                  <input
-                    value={item.label || ''}
-                    onChange={(e) => updateItem(section.key, i, 'label', e.target.value)}
-                    placeholder="Label (e.g. Classic Kraft)"
-                    className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={item.price || 0}
-                    onChange={(e) => updateItem(section.key, i, 'price', Number(e.target.value))}
-                    placeholder="Price"
-                    className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                  <input
-                    value={item.desc || ''}
-                    onChange={(e) => updateItem(section.key, i, 'desc', e.target.value)}
-                    placeholder="Description"
-                    className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                </div>
-                <button onClick={() => removeItem(section.key, i)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (section.type === 'b2b_benefits' || section.type === 'about_values') {
-      return (
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="bg-secondary/30 rounded-sm p-4 space-y-2">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={item.icon || ''}
-                      onChange={(e) => updateItem(section.key, i, 'icon', e.target.value)}
-                      placeholder="Icon name (e.g. Tags, Package)"
-                      className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                    />
-                    <input
-                      value={item.title || ''}
-                      onChange={(e) => updateItem(section.key, i, 'title', e.target.value)}
-                      placeholder="Title"
-                      className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                    />
-                  </div>
-                  <textarea
-                    value={item.desc || ''}
-                    onChange={(e) => updateItem(section.key, i, 'desc', e.target.value)}
-                    placeholder="Description"
-                    rows={2}
-                    className="w-full px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                  />
-                </div>
-                <button onClick={() => removeItem(section.key, i)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (section.type === 'b2b_tiers') {
-      return (
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="bg-secondary/30 rounded-sm p-4 space-y-2">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 grid grid-cols-3 gap-2">
-                  <input
-                    value={item.qty || ''}
-                    onChange={(e) => updateItem(section.key, i, 'qty', e.target.value)}
-                    placeholder="Qty range (e.g. 50–199)"
-                    className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                  <input
-                    value={item.discount || ''}
-                    onChange={(e) => updateItem(section.key, i, 'discount', e.target.value)}
-                    placeholder="Discount (e.g. 15%)"
-                    className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                  <input
-                    value={item.desc || ''}
-                    onChange={(e) => updateItem(section.key, i, 'desc', e.target.value)}
-                    placeholder="Description"
-                    className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  />
-                </div>
-                <button onClick={() => removeItem(section.key, i)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    if (section.type === 'about_stats') {
-      return (
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-start gap-3 bg-secondary/30 rounded-sm p-4">
-              <div className="flex-1 grid grid-cols-2 gap-2">
-                <input
-                  value={item.num || ''}
-                  onChange={(e) => updateItem(section.key, i, 'num', e.target.value)}
-                  placeholder="Number/Stat (e.g. 12k+)"
-                  className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-                <input
-                  value={item.label || ''}
-                  onChange={(e) => updateItem(section.key, i, 'label', e.target.value)}
-                  placeholder="Label (e.g. Customers served)"
-                  className="px-3 py-2 rounded-sm border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-              <button onClick={() => removeItem(section.key, i)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    return null;
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-accent" />
-      </div>
-    );
+    return <div className="space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-40 bg-secondary animate-pulse rounded-3xl" />)}</div>;
   }
+
+  const currentSection = SECTIONS.find(s => s.key === activeSection) || SECTIONS[0];
+  const currentItems = getValue(currentSection.key);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-xl font-medium">Site Content Management</h2>
-          <p className="text-sm text-muted-foreground">Manage all dynamic content across the store</p>
-        </div>
-      </div>
-
-      {/* Section tabs */}
-      <div className="flex flex-wrap gap-1 border-b border-border pb-1">
-        {SECTIONS.map(section => (
+      {/* Sub-navigation pills */}
+      <div className="flex gap-2 p-1.5 rounded-2xl bg-secondary/60 border border-border/80 overflow-x-auto no-scrollbar shadow-soft">
+        {SECTIONS.map((sec) => (
           <button
-            key={section.key}
-            onClick={() => setActiveSection(section.key)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-sm transition-colors ${
-              activeSection === section.key
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            key={sec.key}
+            onClick={() => setActiveSection(sec.key)}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              activeSection === sec.key ? 'bg-primary text-primary-foreground shadow-lift' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {section.label}
+            {sec.label}
           </button>
         ))}
       </div>
 
-      {/* Active section */}
-      {SECTIONS.filter(s => s.key === activeSection).map(section => (
-        <div key={section.key} className="bg-card border border-border rounded-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-base">{section.label}</h3>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => addItem(section.key)}>
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add Item
-              </Button>
-              <Button size="sm" onClick={() => handleSave(section.key)} disabled={saving[section.key]}>
-                {saving[section.key] ? (
-                  <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving...</>
-                ) : (
-                  <><Save className="w-3.5 h-3.5 mr-1" /> Save</>
-                )}
-              </Button>
-            </div>
+      {/* Content Editor Panel */}
+      <div className="bg-card border border-border/80 rounded-3xl p-6 sm:p-8 shadow-soft space-y-6">
+        <div className="flex items-center justify-between border-b border-border/60 pb-4">
+          <div>
+            <h2 className="font-serif-display text-2xl font-bold text-foreground">{currentSection.label}</h2>
+            <p className="text-xs text-muted-foreground">{currentItems.length} items configured</p>
           </div>
-          {getValue(section.key).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No items yet. Click "Add Item" to create one.</p>
-          ) : (
-            renderSection(section)
-          )}
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => addItem(currentSection.key)}
+              className="inline-flex items-center gap-2 border border-border/80 bg-secondary px-4 py-2 rounded-full text-xs font-semibold hover:bg-card transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Item
+            </button>
+            <button
+              onClick={() => handleSaveSection(currentSection.key)}
+              disabled={saving[currentSection.key]}
+              className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-6 py-2 rounded-full text-xs font-semibold uppercase tracking-wider hover:bg-accent/90 transition-all shadow-glow"
+            >
+              <Save className="w-4 h-4" /> {saving[currentSection.key] ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
         </div>
-      ))}
+
+        {/* Section List Items */}
+        <div className="space-y-4">
+          {currentItems.map((item, idx) => (
+            <div key={idx} className="p-4 rounded-2xl bg-secondary/40 border border-border/40 space-y-3 relative group">
+              <button
+                onClick={() => removeItem(currentSection.key, idx)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {currentSection.type === 'string_list' ? (
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Occasion Label</label>
+                  <input
+                    value={typeof item === 'string' ? item : item?.label || ''}
+                    onChange={(e) => {
+                      setContent(prev => {
+                        const arr = [...(Array.isArray(prev[currentSection.key]) ? prev[currentSection.key] : [])];
+                        arr[idx] = e.target.value;
+                        return { ...prev, [currentSection.key]: arr };
+                      });
+                    }}
+                    className="w-full px-4 py-2.5 rounded-xl bg-card border border-border/80 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                  {Object.keys(item).map((field) => (
+                    <div key={field}>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">{field}</label>
+                      <input
+                        value={item[field] || ''}
+                        onChange={(e) => updateItem(currentSection.key, idx, field, e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-card border border-border/80 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

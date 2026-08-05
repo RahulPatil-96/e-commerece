@@ -3,6 +3,7 @@ import { Star, ThumbsUp, Trash2, CheckCircle2 } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 /**
  * @typedef {Object} Review
@@ -154,15 +155,16 @@ const handleMarkHelpful = async (/** @type {string | number} */ reviewId) => {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="text-sm border border-border bg-card rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-          >
-            <option value="recent">Most Recent</option>
-            <option value="helpful">Most Helpful</option>
-          </select>
+<div className="flex items-center gap-3">
+          <Select value={sort} onValueChange={(val) => setSort(val)}>
+            <SelectTrigger className="w-auto min-w-[8rem] bg-card">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Most Recent</SelectItem>
+              <SelectItem value="helpful">Most Helpful</SelectItem>
+            </SelectContent>
+          </Select>
           {isAuthenticated && (
             <button
               onClick={() => setShowForm(!showForm)}

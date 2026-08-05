@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import PageMeta from '@/components/PageMeta';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { INDIAN_STATES, validateShippingDetails } from '@/utils/indianValidation';
 
 /** @typedef {{ id: number, email: string, first_name?: string, last_name?: string, phone?: string, role?: string, is_verified?: boolean, auth_provider?: string, avatar_url?: string, created_at?: string }} ProfileUser */
@@ -578,16 +579,20 @@ export default function Profile() {
                     </div>
                     <div className="grid sm:grid-cols-2 gap-3">
                       <div className="sm:col-span-2">
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Label</label>
-                        <select
+<label className="text-xs font-medium text-muted-foreground mb-1 block">Label</label>
+                        <Select
                           value={addressForm.label}
-                          onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                          onValueChange={(val) => setAddressForm({ ...addressForm, label: val })}
                         >
-                          <option value="Home">Home</option>
-                          <option value="Work">Work</option>
-                          <option value="Other">Other</option>
-                        </select>
+                          <SelectTrigger className="w-full bg-background">
+                            <SelectValue placeholder="Select label" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Home">Home</SelectItem>
+                            <SelectItem value="Work">Work</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">Full Name</label>
@@ -632,15 +637,18 @@ export default function Profile() {
                         {addressErrors.city && <p className="text-[11px] text-destructive mt-1">{addressErrors.city}</p>}
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground mb-1 block">State</label>
-                        <select
-                          value={addressForm.state}
-                          onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+<label className="text-xs font-medium text-muted-foreground mb-1 block">State</label>
+                        <Select
+                          value={addressForm.state || undefined}
+                          onValueChange={(val) => setAddressForm({ ...addressForm, state: val })}
                         >
-                          <option value="">Select state</option>
-                          {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                          <SelectTrigger className="w-full bg-background">
+                            <SelectValue placeholder="Select state" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INDIAN_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                         {addressErrors.state && <p className="text-[11px] text-destructive mt-1">{addressErrors.state}</p>}
                       </div>
                       <div>
