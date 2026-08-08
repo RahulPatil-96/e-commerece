@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import rateLimit from 'express-rate-limit';
@@ -56,14 +57,27 @@ app.use(cors({
   maxAge: 86400, // 24 hours
 }));
 
-// Capture raw body for webhook signature verification BEFORE parsing JSON
+// Capture raw body for webhook signature verification BEFORE parsing JSON.
+// Includes a size cap so a malicious client cannot buffer unbounded data in memory.
+const MAX_WEBHOOK_BODY_BYTES = 1024 * 1024; // 1 MB
 app.use((req, res, next) => {
   if (req.path === '/api/payments/webhook') {
     let rawBody = '';
+    let size = 0;
+    let aborted = false;
     req.on('data', chunk => {
+      if (aborted) return;
+      size += chunk.length;
+      if (size > MAX_WEBHOOK_BODY_BYTES) {
+        aborted = true;
+        res.status(413).json({ message: 'Request body too large' });
+        req.destroy();
+        return;
+      }
       rawBody += chunk.toString('utf8');
     });
     req.on('end', () => {
+      if (aborted) return;
       req.rawBody = rawBody;
       next();
     });
@@ -100,10 +114,17 @@ app.use('/api', (req, res, next) => {
   res.set('X-Frame-Options', 'DENY');
   res.set('X-XSS-Protection', '1; mode=block');
 
-  // Cache product and category endpoints
+// Cache product and category endpoints. The ETag is derived from a content
+  // hash of the response body so it stays stable across requests with the same
+  // data (proper HTTP caching), instead of changing every single request.
   if (req.method === 'GET' && (req.path.startsWith('/products') || req.path.startsWith('/categories'))) {
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
-    res.set('ETag', `"${Date.now()}"`);
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+      const etag = `"${crypto.createHash('sha1').update(JSON.stringify(body)).digest('hex')}"`;
+      res.set('ETag', etag);
+      return originalJson(body);
+    };
   } else if (req.method === 'GET') {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   }
@@ -123,9 +144,11 @@ const isLocalhostRequest = (req) => {
   );
 };
 
+// Rate limits — raised from the more aggressive defaults so legitimate users
+// behind shared IPs (office/NAT) are not blocked on a public storefront.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   skip: isLocalhostRequest,
@@ -134,7 +157,7 @@ const authLimiter = rateLimit({
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   skip: isLocalhostRequest,
@@ -207,6 +230,20 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
+// Periodic cleanup of expired/used password reset & OTP verification rows so
+// they don't accumulate forever.
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // every 6 hours
+async function cleanupExpiredAuthRows() {
+  try {
+    const { query } = await import('./db.js');
+    await query("DELETE FROM password_resets WHERE used = true OR expires_at < CURRENT_TIMESTAMP");
+    await query("DELETE FROM email_verifications WHERE used = true OR expires_at < CURRENT_TIMESTAMP");
+    logger.info('Auth cleanup: pruned expired/used password resets & OTP rows');
+  } catch (error) {
+    logger.warn('Auth cleanup failed:', { error: error.message });
+  }
+}
+
 // Start Server & Init Database
 async function startServer() {
   try {
@@ -228,12 +265,18 @@ async function startServer() {
       logger.warn(`Missing optional environment variables: ${missingRecommended.join(', ')}. Some features may not work.`);
     }
 
-    await initDb();
+await initDb();
     await seedDatabase();
 
+    // Start the HTTP server now that the DB is ready.
     app.listen(PORT, () => {
-      logger.info(`Arihant Express Backend Server running on http://localhost:${PORT}`);
+      logger.info(`Arihant API server running on http://localhost:${PORT}`);
+      console.log(`✅ Arihant API server listening on port ${PORT}`);
     });
+
+    // Run auth cleanup periodically (first run shortly after startup).
+    setTimeout(cleanupExpiredAuthRows, 60 * 1000);
+    setInterval(cleanupExpiredAuthRows, CLEANUP_INTERVAL_MS);
   } catch (err) {
     logger.error('Failed to start server:', { error: err.message });
     process.exit(1);

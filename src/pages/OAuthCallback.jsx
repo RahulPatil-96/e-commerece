@@ -1,17 +1,17 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/api/apiClient';
 import { useAuth } from '@/lib/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 /**
  * Handles the redirect back from the Google OAuth provider.
- * The backend appends ?access_token=...&user=... to the FRONTEND_URL.
- * We store the token, load the user, and navigate to the intended page.
+ * The backend appends #access_token=...&user=... to the FRONTEND_URL using a
+ * URL fragment so the JWT isn't exposed in logs/history. We parse the fragment,
+ * store the token, load the user, and navigate to the intended page.
  */
 export default function OAuthCallback() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { checkUserAuth } = useAuth();
   const handled = useRef(false);
 
@@ -19,9 +19,11 @@ export default function OAuthCallback() {
     if (handled.current) return;
     handled.current = true;
 
-    const accessToken = searchParams.get('access_token');
-    const userParam = searchParams.get('user');
-    const oauthError = searchParams.get('oauth_error');
+    // Parse the URL fragment (e.g. #access_token=...&user=...)
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const accessToken = hashParams.get('access_token');
+    const userParam = hashParams.get('user');
+    const oauthError = hashParams.get('oauth_error');
 
     const redirectTo = (() => {
       try {
@@ -75,7 +77,7 @@ export default function OAuthCallback() {
         // Even if checkUserAuth fails, the token is set — allow navigation
         navigate(redirectTo, { replace: true });
       });
-  }, [navigate, searchParams, checkUserAuth]);
+  }, [navigate, checkUserAuth]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
@@ -85,4 +87,3 @@ export default function OAuthCallback() {
     </div>
   );
 }
-

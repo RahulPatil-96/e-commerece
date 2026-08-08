@@ -46,6 +46,9 @@ export const AuthProvider = ({ children }) => {
       setAuthChecked(true);
     } catch (error) {
       console.log('Auth check failed or user not logged in');
+      // Clear the stale/expired token so subsequent page loads don't keep
+      // retrying a failed /auth/me call.
+      apiClient.auth.setToken(null);
       setUser(null);
       setIsAuthenticated(false);
       setIsLoadingAuth(false);

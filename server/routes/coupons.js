@@ -18,8 +18,9 @@ function formatCoupon(row) {
   };
 }
 
-// GET /api/coupons/validate/:code — Validate and get coupon details
-router.get('/validate/:code', authenticateToken, requireAuth, async (req, res) => {
+// GET /api/coupons/validate/:code — Validate and get coupon details.
+// Public (no auth) so guests can validate a coupon before checkout.
+router.get('/validate/:code', async (req, res) => {
   try {
     const { code } = req.params;
     const { order_subtotal, mode = 'retail' } = req.query;
@@ -63,34 +64,50 @@ router.get('/validate/:code', authenticateToken, requireAuth, async (req, res) =
   }
 });
 
-// POST /api/coupons/apply — Apply coupon to order (increment usage)
-router.post('/apply', authenticateToken, requireAuth, async (req, res) => {
+// POST /api/coupons/apply — Validate a coupon without incrementing usage.
+// Coupon usage is incremented only when an order is actually created
+// (see server/routes/orders.js POST /). This prevents abandoned carts from
+// exhausting coupon limits.
+router.post('/apply', async (req, res) => {
   try {
-    const { coupon_code } = req.body;
+    const { coupon_code, order_subtotal, mode = 'retail' } = req.body;
 
     if (!coupon_code) {
       return res.status(400).json({ message: 'coupon_code is required' });
     }
 
     const result = await query(
-      `UPDATE coupons 
-       SET current_uses = current_uses + 1
+      `SELECT * FROM coupons
        WHERE LOWER(code) = LOWER($1)
        AND is_active = true
-       AND (max_uses IS NULL OR current_uses < max_uses)
        AND (valid_from IS NULL OR valid_from <= CURRENT_TIMESTAMP)
-       AND (valid_until IS NULL OR valid_until >= CURRENT_TIMESTAMP)
-       RETURNING *`,
+       AND (valid_until IS NULL OR valid_until >= CURRENT_TIMESTAMP)`,
       [coupon_code]
     );
 
     if (result.rows.length === 0) {
-      return res.status(400).json({ message: 'Could not apply coupon' });
+      return res.status(404).json({ message: 'Coupon not found or expired' });
+    }
+
+    const coupon = result.rows[0];
+
+    if (coupon.max_uses && coupon.current_uses >= coupon.max_uses) {
+      return res.status(400).json({ message: 'Coupon usage limit reached' });
+    }
+
+    if (coupon.applicable_to !== 'all' && coupon.applicable_to !== mode) {
+      return res.status(400).json({ message: `Coupon not applicable to ${mode} orders` });
+    }
+
+    if (coupon.min_order_value && Number(order_subtotal) < Number(coupon.min_order_value)) {
+      return res.status(400).json({
+        message: `Minimum order value of ₹${coupon.min_order_value} required`,
+      });
     }
 
     return res.json({
-      message: 'Coupon applied successfully',
-      coupon: formatCoupon(result.rows[0])
+      message: 'Coupon is valid',
+      coupon: formatCoupon(coupon),
     });
   } catch (error) {
     logger.error('Apply coupon error:', { error: error.message });

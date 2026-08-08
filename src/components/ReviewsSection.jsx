@@ -77,6 +77,7 @@ export default function ReviewsSection({ productId }) {
       setReviews(prev => [newReview, ...prev]);
       setShowForm(false);
       setFormData({ rating: 5, title: '', review_text: '' });
+      apiClient.entities.Review.stats(productId).then(setStats).catch(() => {});
       toast({ title: 'Review submitted', description: 'Thank you for your feedback!' });
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Failed to submit review');
@@ -88,6 +89,7 @@ export default function ReviewsSection({ productId }) {
   const handleDeleteReview = async (/** @type {string | number} */ reviewId) => {
     try {
       await apiClient.entities.Review.delete(reviewId);
+      apiClient.entities.Review.stats(productId).then(setStats).catch(() => {});
       setReviews(prev => prev.filter(r => r.id !== reviewId));
       toast({ title: 'Review deleted' });
     } catch (error) {
@@ -98,7 +100,7 @@ export default function ReviewsSection({ productId }) {
     }
   };
 
-const handleMarkHelpful = async (/** @type {string | number} */ reviewId) => {
+  const handleMarkHelpful = async (/** @type {string | number} */ reviewId) => {
     try {
       await apiClient.entities.Review.helpful(reviewId);
       setReviews(prev => prev.map(r =>

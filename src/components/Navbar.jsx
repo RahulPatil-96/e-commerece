@@ -39,6 +39,11 @@ export default function Navbar() {
   ];
 
   const isAdmin = user?.role === 'admin';
+  const displayName = (user?.first_name || user?.last_name || user?.email || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(' ') || 'User';
   const showAnnouncement = !scrolled;
 
   return (
@@ -58,7 +63,7 @@ export default function Navbar() {
       <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'py-3' : 'py-5'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`flex items-center justify-between px-5 md:px-7 rounded-3xl transition-all duration-500 ${scrolled ? 'glass shadow-lift py-3' : 'bg-background/80 backdrop-blur-md border border-border/60 py-3.5 shadow-soft'}`}>
-            
+
             {/* Brand Logo */}
             <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
               <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-accent via-[#D9B766] to-[#284B3D] flex items-center justify-center shadow-glow transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3">
@@ -82,15 +87,13 @@ export default function Navbar() {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`relative text-xs lg:text-sm font-medium tracking-wide uppercase transition-colors group py-2 ${
-                      active ? 'text-accent font-semibold' : 'text-foreground/80 hover:text-foreground'
-                    }`}
+                    className={`relative text-xs lg:text-sm font-medium tracking-wide uppercase transition-colors group py-2 ${active ? 'text-accent font-semibold' : 'text-foreground/80 hover:text-foreground'
+                      }`}
                   >
                     {link.label}
                     <span
-                      className={`absolute left-0 -bottom-0.5 h-0.5 rounded-full bg-accent transition-all duration-300 ${
-                        active ? 'w-full' : 'w-0 group-hover:w-full'
-                      }`}
+                      className={`absolute left-0 -bottom-0.5 h-0.5 rounded-full bg-accent transition-all duration-300 ${active ? 'w-full' : 'w-0 group-hover:w-full'
+                        }`}
                     />
                   </Link>
                 );
@@ -113,21 +116,19 @@ export default function Navbar() {
               <div className="hidden sm:flex items-center bg-secondary rounded-full p-1 text-[11px] font-semibold border border-border/80 shadow-inner">
                 <button
                   onClick={() => setMode('retail')}
-                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${
-                    mode === 'retail'
+                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${mode === 'retail'
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   Retail
                 </button>
                 <button
                   onClick={() => setMode('wholesale')}
-                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${
-                    mode === 'wholesale'
+                  className={`px-3 py-1.5 rounded-full transition-all duration-300 ${mode === 'wholesale'
                       ? 'bg-accent text-accent-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   Wholesale
                 </button>
@@ -167,11 +168,11 @@ export default function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <button className="p-0.5 rounded-full ring-2 ring-transparent hover:ring-accent transition-all outline-none" aria-label="Account">
                       <Avatar className="w-8 h-8 md:w-9 md:h-9 shadow-soft">
-                        {user.avatar ? (
-                          <AvatarImage src={user.avatar} alt={user.name || 'User'} />
+                        {user.avatar_url ? (
+                          <AvatarImage src={user.avatar_url} alt={displayName} />
                         ) : (
                           <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-xs">
-                            {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                            {(displayName || 'U').charAt(0).toUpperCase()}
                           </AvatarFallback>
                         )}
                       </Avatar>
@@ -179,7 +180,7 @@ export default function Navbar() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-60 rounded-3xl p-2 shadow-lift bg-card border-border/80">
                     <div className="px-3 py-2">
-                      <p className="text-sm font-semibold truncate text-foreground">{user.name || 'User'}</p>
+                      <p className="text-sm font-semibold truncate text-foreground">{displayName}</p>
                       <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                     </div>
                     <DropdownMenuSeparator className="my-1 bg-border/60" />
@@ -187,13 +188,13 @@ export default function Navbar() {
                       <ShoppingBag className="w-4 h-4 mr-2.5 text-accent" />
                       My Cart {count > 0 ? `(${count})` : ''}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer rounded-2xl p-2.5 text-xs font-medium">
-                      <UserCircle className="w-4 h-4 mr-2.5 text-accent" />
-                      My Profile
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/orders')} className="cursor-pointer rounded-2xl p-2.5 text-xs font-medium">
                       <Package className="w-4 h-4 mr-2.5 text-accent" />
                       My Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer rounded-2xl p-2.5 text-xs font-medium">
+                      <UserCircle className="w-4 h-4 mr-2.5 text-accent" />
+                      My Profile
                     </DropdownMenuItem>
                     {isAdmin && (
                       <>
@@ -247,7 +248,7 @@ export default function Navbar() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="px-6 pt-5">
               <SearchSuggestions
                 onSelect={(product) => {
@@ -262,9 +263,8 @@ export default function Navbar() {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`block px-5 py-3.5 rounded-2xl text-sm font-medium transition-all ${
-                    location.pathname === link.path ? 'bg-accent text-accent-foreground font-semibold shadow-soft' : 'text-foreground/80 hover:bg-secondary'
-                  }`}
+                  className={`block px-5 py-3.5 rounded-2xl text-sm font-medium transition-all ${location.pathname === link.path ? 'bg-accent text-accent-foreground font-semibold shadow-soft' : 'text-foreground/80 hover:bg-secondary'
+                    }`}
                 >
                   {link.label}
                 </Link>
@@ -275,17 +275,15 @@ export default function Navbar() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setMode('retail')}
-                    className={`flex-1 py-3 rounded-2xl text-xs font-semibold transition-all ${
-                      mode === 'retail' ? 'bg-primary text-primary-foreground shadow-soft' : 'bg-secondary text-muted-foreground'
-                    }`}
+                    className={`flex-1 py-3 rounded-2xl text-xs font-semibold transition-all ${mode === 'retail' ? 'bg-primary text-primary-foreground shadow-soft' : 'bg-secondary text-muted-foreground'
+                      }`}
                   >
                     Retail Mode
                   </button>
                   <button
                     onClick={() => setMode('wholesale')}
-                    className={`flex-1 py-3 rounded-2xl text-xs font-semibold transition-all ${
-                      mode === 'wholesale' ? 'bg-accent text-accent-foreground shadow-soft' : 'bg-secondary text-muted-foreground'
-                    }`}
+                    className={`flex-1 py-3 rounded-2xl text-xs font-semibold transition-all ${mode === 'wholesale' ? 'bg-accent text-accent-foreground shadow-soft' : 'bg-secondary text-muted-foreground'
+                      }`}
                   >
                     Wholesale Mode
                   </button>

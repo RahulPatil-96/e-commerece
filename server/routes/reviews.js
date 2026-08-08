@@ -1,5 +1,5 @@
 import express from 'express';
-import { query } from '../db.js';
+import { query, pool } from '../db.js';
 import { authenticateToken, requireAuth, requireAdmin } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
 
@@ -150,22 +150,50 @@ router.delete('/:id', authenticateToken, requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/reviews/:id/helpful — Mark review as helpful
-router.put('/:id/helpful', async (req, res) => {
+// PUT /api/reviews/:id/helpful — Mark review as helpful.
+// Requires authentication and dedupes per user so a single user cannot
+// inflate the count infinitely.
+router.put('/:id/helpful', authenticateToken, requireAuth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const result = await query(
+    await client.query('BEGIN');
+
+    // Ensure the review exists & lock it.
+    const reviewResult = await client.query('SELECT id FROM reviews WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (reviewResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Review not found' });
+    }
+
+    // Insert a vote (dedup via PRIMARY KEY / unique constraint).
+    try {
+      await client.query(
+        'INSERT INTO review_votes (review_id, user_id, helpful) VALUES ($1, $2, true)',
+        [req.params.id, req.user.id]
+      );
+    } catch (voteError) {
+      // Duplicate vote from the same user → prohibit.
+      if (voteError.code === '23505') {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: 'You have already marked this review as helpful' });
+      }
+      throw voteError;
+    }
+
+    // Increment helpful_count only when a new vote was inserted.
+    const result = await client.query(
       'UPDATE reviews SET helpful_count = helpful_count + 1 WHERE id = $1 RETURNING *',
       [req.params.id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Review not found' });
-    }
-
+    await client.query('COMMIT');
     return res.json(formatReview(result.rows[0]));
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('Mark helpful error:', { error: error.message });
     res.status(500).json({ message: 'Failed to update helpful count' });
+  } finally {
+    client.release();
   }
 });
 

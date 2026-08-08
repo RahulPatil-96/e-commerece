@@ -114,7 +114,7 @@ export default function Home() {
           <Reveal delay={100}>
             <h1 className="font-serif-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight text-foreground leading-[0.95] text-balance">
               Stationery.<br />
-              <span className="text-gradient-gold italic">Elevated</span> for Brands.
+              <span className="text-gradient-gold italic">Elevated </span> for Brands.
             </h1>
           </Reveal>
 

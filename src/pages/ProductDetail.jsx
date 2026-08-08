@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, Minus, Plus, ShoppingBag, ArrowLeft, Truck, RotateCcw, ShieldCheck, Heart, Share2, Sparkles } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useCart } from '@/lib/cartContext';
+import { useAuth } from '@/lib/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Image } from '@/components/ui/image';
 import CustomizationStudio from '@/components/CustomizationStudio';
@@ -25,6 +26,7 @@ export default function ProductDetail() {
   const [customization, setCustomization] = useState(DEFAULT_CUSTOM);
   const [wishlisted, setWishlisted] = useState(false);
   const { addItem, mode } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -40,6 +42,14 @@ export default function ProductDetail() {
     apiClient.entities.Product.get(id)
       .then(async (p) => {
         setProduct(p);
+        if (isAuthenticated && user) {
+          try {
+            const wish = await apiClient.entities.Wishlist.check(p.id);
+            setWishlisted(Boolean(wish?.in_wishlist));
+          } catch {
+            // Ignore wishlist check errors
+          }
+        }
         const rel = await apiClient.entities.Product.filter({ category: p.category }, '-created_date', 5);
         const relatedItems = Array.isArray(rel) ? rel : [];
         setRelated(relatedItems.filter((r) => String(r.id) !== String(p.id)).slice(0, 4));
@@ -70,6 +80,28 @@ export default function ProductDetail() {
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
     toast({ title: 'Link copied', description: 'Share this product with friends' });
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!product) return;
+    if (!isAuthenticated || !user) {
+      toast({ title: 'Please sign in', description: 'Login to add items to your wishlist.' });
+      navigate('/login');
+      return;
+    }
+    try {
+      if (wishlisted) {
+        await apiClient.entities.Wishlist.remove(product.id);
+        setWishlisted(false);
+        toast({ title: 'Removed from wishlist' });
+      } else {
+        await apiClient.entities.Wishlist.add(product.id);
+        setWishlisted(true);
+        toast({ title: 'Added to wishlist', description: `${product.name} saved for later.` });
+      }
+    } catch (error) {
+      toast({ title: 'Could not update wishlist', description: error instanceof Error ? error.message : 'Try again.', variant: 'destructive' });
+    }
   };
 
   if (loading) {
@@ -269,7 +301,7 @@ export default function ProductDetail() {
               </button>
 
               <button
-                onClick={() => setWishlisted(!wishlisted)}
+                onClick={handleWishlistToggle}
                 className={`w-14 h-14 rounded-full border border-border/80 flex items-center justify-center transition-all ${
                   wishlisted ? 'bg-accent text-white border-accent shadow-soft' : 'hover:bg-secondary'
                 }`}

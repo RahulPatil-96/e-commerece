@@ -309,16 +309,10 @@ export const FEATURED_COLLECTIONS_CONFIG = [
 
 export async function seedDatabase() {
   try {
-    // Check if products exist
-    const { rows } = await query('SELECT COUNT(*) FROM products');
-    if (parseInt(rows[0].count) > 0) {
-      console.log('🌱 Database already contains data. Skipping seed.');
-      return;
-    }
-
     console.log('🌱 Seeding database...');
 
-    // Seed Categories
+    // Seed Categories (idempotent — each section is seeded independently so a
+    // partially-populated DB still gets its missing defaults).
     for (const cat of CATEGORIES) {
       await query(
         `INSERT INTO categories (name, slug, description, display_order)
@@ -333,7 +327,8 @@ export async function seedDatabase() {
       await query(
         `INSERT INTO products 
         (name, slug, description, long_description, price, wholesale_price, category, audience, image_url, gallery, stock, sku, tags, rating, featured, bulk_min_qty, dimensions, material, color, weight, care_instructions, personalizable, customization_price)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+        ON CONFLICT (slug) DO NOTHING`,
         [
           p.name, p.slug, p.description, p.long_description, p.price, p.wholesale_price,
           p.category, p.audience, p.image_url, JSON.stringify(p.gallery), p.stock, p.sku,

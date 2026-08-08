@@ -7,14 +7,19 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-// Validation schema for customization rules
+// Validation schema for customization rules — aligned with the frontend payload
+// ({ fonts, colors, maxLength, enabled }).
 const customizationRulesSchema = z.object({
-  text_placement_options: z.array(z.string()).optional(),
-  color_options: z.array(z.string()).optional(),
-  font_options: z.array(z.string()).optional(),
-  max_text_length: z.number().int().positive().optional(),
-  preview_refresh_delay: z.number().int().positive().optional(),
-  min_personalization_items: z.number().int().nonnegative().optional(),
+  fonts: z.array(z.object({
+    label: z.string().optional(),
+    value: z.string().optional(),
+  })).optional(),
+  colors: z.array(z.object({
+    label: z.string().optional(),
+    value: z.string().optional(),
+  })).optional(),
+  maxLength: z.number().int().positive().optional(),
+  enabled: z.boolean().optional(),
 }).strict('Received unexpected fields in customization rules');
 
 // Public GET — anyone can read customization rules

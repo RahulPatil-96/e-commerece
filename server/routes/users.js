@@ -10,13 +10,13 @@ const router = express.Router();
 router.use(authenticateToken);
 
 const roleSchema = z.object({
-  role: z.enum(['user', 'admin']),
+  role: z.enum(['user', 'admin', 'b2b']),
 });
 
 const createUserSchema = z.object({
   email: z.string().email('Valid email is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['user', 'admin']).optional(),
+  role: z.enum(['user', 'admin', 'b2b']).optional(),
 });
 
 const userUpdateSchema = z.object({
@@ -187,19 +187,25 @@ router.post('/me/delete-account', requireAuth, async (req, res) => {
   try {
     const { password } = req.body;
 
-    if (!password) {
-      return res.status(400).json({ message: 'Password is required to delete account' });
-    }
-
-    // Verify password
-    const userResult = await query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    // Fetch the user's auth provider & password hash.
+    const userResult = await query('SELECT password_hash, auth_provider FROM users WHERE id = $1', [req.user.id]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const isMatch = await bcrypt.compare(password, userResult.rows[0].password_hash);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Password is incorrect' });
+    const user = userResult.rows[0];
+    const isGoogleUser = user.auth_provider === 'google' || !user.password_hash;
+
+    // Google-only users have no password, so they can delete their account
+    // without verifying a password.
+    if (!isGoogleUser) {
+      if (!password) {
+        return res.status(400).json({ message: 'Password is required to delete account' });
+      }
+      const isMatch = await bcrypt.compare(password, user.password_hash);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Password is incorrect' });
+      }
     }
 
     // Delete user

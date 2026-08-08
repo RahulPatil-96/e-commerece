@@ -132,7 +132,6 @@ export default function ProductManager() {
       bulk_min_qty: Number(form.bulk_min_qty) || 1,
       customization_price: form.personalizable ? Number(form.customization_price) || 0 : 0,
       gallery: form.gallery || [],
-      slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
     };
     try {
       if (editing) {

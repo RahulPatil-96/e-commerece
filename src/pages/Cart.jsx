@@ -131,17 +131,16 @@ export default function Cart() {
       return;
     }
 
-setApplyingCoupon(true);
+    setApplyingCoupon(true);
     setCouponError('');
     try {
+      // Validate the coupon (usage is only incremented at order creation,
+      // so abandoned carts / failed orders never consume coupon limits).
       const coupon = await apiClient.entities.Coupon.validate(
         couponCode.toUpperCase(),
         mode,
         subtotal
       );
-
-      // Increment the coupon usage count on the server
-      await apiClient.entities.Coupon.apply(couponCode.toUpperCase());
 
       setCouponApplied(coupon);
       setCouponCode('');
@@ -189,15 +188,12 @@ setApplyingCoupon(true);
       if (paymentMethod === 'cod') {
         await apiClient.entities.Order.create({
           ...form,
-          items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: itemPrice(i), product_id: i.id, customization: i.customization || null })),
-          subtotal,
-          shipping,
-          total,
-          discount,
+          items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, product_id: i.id, customization: i.customization || null })),
           order_type: mode,
           status: 'pending',
           payment_method: 'cod',
           payment_status: 'pending',
+          coupon_code: couponApplied?.code || null,
         });
         saveShippingAddress();
         clearCart();
@@ -250,18 +246,15 @@ setApplyingCoupon(true);
           handler: async (/** @type {RazorpayResponse} */ response) => {
             await apiClient.entities.Order.create({
               ...form,
-              items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: itemPrice(i), product_id: i.id, customization: i.customization || null })),
-              subtotal,
-              shipping,
-              total,
-              discount,
+              items: items.map(i => ({ id: i.id, name: i.name, qty: i.qty, product_id: i.id, customization: i.customization || null })),
               order_type: mode,
-              status: 'paid',
-              payment_method: 'online',
+              status: 'pending',
+              payment_method: 'razorpay',
               payment_status: 'paid',
               payment_id: response.razorpay_payment_id,
               order_id: paymentOrder.orderId,
               razorpay_signature: response.razorpay_signature,
+              coupon_code: couponApplied?.code || null,
             });
             saveShippingAddress();
             clearCart();
@@ -385,7 +378,7 @@ setApplyingCoupon(true);
                         <h3 className="font-serif-display text-lg font-bold text-foreground truncate">{item.name}</h3>
                       </div>
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.lineId ?? item.id)}
                         className="text-muted-foreground hover:text-destructive p-1 transition-colors"
                         aria-label="Remove item"
                       >
@@ -402,7 +395,7 @@ setApplyingCoupon(true);
                     <div className="flex items-center justify-between pt-2">
                       <div className="flex items-center border border-border/80 rounded-full bg-secondary p-1">
                         <button
-                          onClick={() => updateQty(item.id, Math.max(1, item.qty - 1))}
+                          onClick={() => updateQty(item.lineId ?? item.id, Math.max(1, item.qty - 1))}
                           className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-card transition-colors"
                           aria-label="Decrease"
                         >
@@ -410,7 +403,7 @@ setApplyingCoupon(true);
                         </button>
                         <span className="w-8 text-center text-xs font-bold">{item.qty}</span>
                         <button
-                          onClick={() => updateQty(item.id, item.qty + 1)}
+                          onClick={() => updateQty(item.lineId ?? item.id, item.qty + 1)}
                           className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-card transition-colors"
                           aria-label="Increase"
                         >
@@ -526,7 +519,7 @@ setApplyingCoupon(true);
                 />
               </div>
 
-<div>
+              <div>
                 <label className="text-xs font-semibold text-muted-foreground mb-1 block">State *</label>
                 <Select
                   value={form.state}

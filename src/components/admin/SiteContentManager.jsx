@@ -83,7 +83,7 @@ export default function SiteContentManager() {
     setSaving(prev => ({ ...prev, [key]: true }));
     try {
       const arr = getValue(key);
-      await apiClient.entities.SiteContent.set(key, arr);
+      await apiClient.entities.SiteContent.update(key, arr);
       toast({ title: 'Saved successfully', description: `${key} updated.` });
     } catch (err) {
       toast({ title: 'Failed to save', description: err instanceof Error ? err.message : 'Error updating content', variant: 'destructive' });

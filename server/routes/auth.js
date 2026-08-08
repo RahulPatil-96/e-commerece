@@ -164,7 +164,7 @@ router.post('/register', async (req, res) => {
     );
     const newUser = userResult.rows[0];
 
-    // Create and send verification OTP
+// Create and send verification OTP
     const code = createVerificationCode();
     await query(
       `INSERT INTO email_verifications (user_id, email, code, expires_at, used)
@@ -172,7 +172,12 @@ router.post('/register', async (req, res) => {
       [newUser.id, normalizedEmail, code]
     );
 
-    await sendVerificationEmail(normalizedEmail, code);
+    // Email sending must not fail the registration if SMTP is down.
+    try {
+      await sendVerificationEmail(normalizedEmail, code);
+    } catch (emailError) {
+      logger.warn('Verification email not sent during registration:', { error: emailError.message });
+    }
 
     return res.status(201).json({
       message: 'Registration successful. Please verify your email with the OTP sent to your inbox.',
@@ -263,7 +268,11 @@ router.post('/resend-otp', async (req, res) => {
       [user.id, normalizedEmail, code]
     );
 
-    await sendVerificationEmail(normalizedEmail, code);
+try {
+      await sendVerificationEmail(normalizedEmail, code);
+    } catch (emailError) {
+      logger.warn('Verification email not sent on resend:', { error: emailError.message });
+    }
     return res.json({ success: true, message: 'Verification code sent' });
   } catch (error) {
     logger.error('Resend OTP error:', { error: error.message, stack: error.stack });
@@ -280,13 +289,17 @@ router.post('/forgot-password', async (req, res) => {
       const token = createResetToken();
       const expiresAt = new Date(Date.now() + RESET_EXPIRY_MINUTES * 60 * 1000).toISOString();
 
-      await query(
+await query(
         `INSERT INTO password_resets (user_id, email, token, expires_at, used)
          VALUES ($1, $2, $3, $4, false)`,
         [user.id, normalizedEmail, token, expiresAt]
       );
 
-      await sendPasswordResetEmail(normalizedEmail, token);
+      try {
+        await sendPasswordResetEmail(normalizedEmail, token);
+      } catch (emailError) {
+        logger.warn('Password reset email not sent:', { error: emailError.message });
+      }
     }
 
     return res.json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
@@ -382,9 +395,11 @@ router.get(
 
       const token = signToken(freshUser);
 
-      // Redirect back to the frontend callback page which stores the token.
+// Redirect back to the frontend callback page which stores the token.
+      // Use a URL fragment (#access_token=) rather than a query string so the
+      // JWT is not exposed in server logs / browser history / referrer headers.
       return res.redirect(
-        `${FRONTEND_URL}/oauth-callback?access_token=${encodeURIComponent(token)}&user=${encodeURIComponent(
+        `${FRONTEND_URL}/oauth-callback#access_token=${encodeURIComponent(token)}&user=${encodeURIComponent(
           JSON.stringify({
             id: freshUser.id,
             email: freshUser.email,

@@ -309,8 +309,12 @@ export const apiClient = {
     Order: {
       list: async (sort = '-created_date', limit = 200) => {
         try {
-          const res = await request('/orders');
-          return Array.isArray(res) ? res : [];
+          const queryParams = new URLSearchParams();
+          if (sort) queryParams.set('sort', sort);
+          if (limit) queryParams.set('limit', limit.toString());
+          const res = await request(`/orders?${queryParams.toString()}`);
+          // The API now returns { orders: [...], pagination: {...} }, unwrap for consumers.
+          return Array.isArray(res) ? res : (res?.orders || []);
         } catch (err) {
           console.warn('apiClient: Order.list failed', err);
           return [];

@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { query } from '../db.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -158,8 +159,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/products
-router.post('/', async (req, res) => {
+// POST /api/products (admin only)
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const p = req.body;
     const slug = await generateUniqueSlug(p.name || 'product');
@@ -203,8 +204,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/products/:id
-router.put('/:id', async (req, res) => {
+// PUT /api/products/:id (admin only)
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const p = req.body;
@@ -276,8 +277,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/products/:id
-router.delete('/:id', async (req, res) => {
+// DELETE /api/products/:id (admin only)
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const isNumeric = /^\d+$/.test(id);

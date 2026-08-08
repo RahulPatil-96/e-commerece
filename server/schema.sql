@@ -138,6 +138,10 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS state VARCHAR(100);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (discount >= 0);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(50);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_id VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(255);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS razorpay_signature VARCHAR(255);
 
 -- ----------------------------------------------------------------------------
 -- 4b. USER ADDRESSES TABLE (saved shipping addresses)
@@ -276,6 +280,16 @@ CREATE TABLE IF NOT EXISTS reviews (
     UNIQUE(user_id, product_id)
 );
 
+-- Reviews: per-user "helpful" votes (dedupes by user so count cannot be inflated)
+CREATE TABLE IF NOT EXISTS review_votes (
+    id SERIAL PRIMARY KEY,
+    review_id INTEGER NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    helpful BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(review_id, user_id)
+);
+
 -- 12. COUPONS & DISCOUNTS TABLE
 CREATE TABLE IF NOT EXISTS coupons (
     id SERIAL PRIMARY KEY,
@@ -306,6 +320,9 @@ CREATE INDEX IF NOT EXISTS products_name_trgm_idx ON products USING GIN (name gi
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users (email);
 CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_idx ON users (google_id) WHERE google_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS categories_slug_idx ON categories (slug);
+-- Products: unique slug required for idempotent seed inserts (ON CONFLICT (slug)).
+-- Added retroactively so pre-existing tables that lack the constraint get it.
+CREATE UNIQUE INDEX IF NOT EXISTS products_slug_idx ON products (slug);
 CREATE UNIQUE INDEX IF NOT EXISTS coupons_code_idx ON coupons (code);
 CREATE INDEX IF NOT EXISTS categories_display_order_idx ON categories (display_order ASC);
 CREATE INDEX IF NOT EXISTS products_category_idx ON products (category);

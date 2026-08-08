@@ -6,7 +6,7 @@ import { downloadOrderReceiptPdf } from '@/utils/orderReceiptPdf';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 const ORDER_TYPES = ['retail', 'wholesale', 'bulk', 'b2b'];
 
 /** @typedef {{ name?: string, text?: string, placement?: string, color?: string, font?: string, [key: string]: any }} Customization */
