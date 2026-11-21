@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 /**
- * Branded confirmation dialog matching the Arihant luxury UI.
+ * Branded confirmation dialog matching the Swipe luxury UI.
  * Replaces native window.confirm() popups.
  *
  * @param {{

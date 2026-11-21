@@ -9,7 +9,7 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase();
 
-const TOKEN_KEY = 'arihant_access_token';
+const TOKEN_KEY = 'swipe_access_token';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
 const MAX_RETRIES = 2;
 
@@ -93,6 +93,55 @@ async function request(
 }
 
 export const apiClient = {
+  upload: {
+    /**
+     * Fetches a short-lived ImageKit authentication token from our backend.
+     * Returns { token, expire, signature, publicKey, urlEndpoint, configured }
+     */
+    getImageKitAuth: async () => {
+      return request('/upload/imagekit-auth');
+    },
+
+    /**
+     * Upload a File directly to ImageKit using client-side upload.
+     * @param {File} file - The file to upload
+     * @param {string} folder - ImageKit folder path (e.g. '/products')
+     * @returns {Promise<{ url: string, fileId: string, name: string }>}
+     */
+    toImageKit: async (file, folder = '/products') => {
+      const auth = await request('/upload/imagekit-auth');
+      if (!auth?.configured) {
+        throw new Error('ImageKit is not configured on the server.');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', file.name);
+      formData.append('folder', folder);
+      formData.append('publicKey', auth.publicKey);
+      formData.append('signature', auth.signature);
+      formData.append('expire', String(auth.expire));
+      formData.append('token', auth.token);
+
+      const response = await fetch('https://upload.imagekit.io/api/v1/files/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `ImageKit upload failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      return {
+        url: result.url,
+        fileId: result.fileId,
+        name: result.name,
+      };
+    },
+  },
+
   newsletter: {
     subscribe: async (/** @type {string} */ email) => {
       return request('/newsletter', {
@@ -174,7 +223,7 @@ export const apiClient = {
     loginWithProvider: async (/** @type {string} */ provider, /** @type {string} */ redirectUrl = '/') => {
       // Store the intended redirect URL so the OAuth callback page can return there
       try {
-        localStorage.setItem('arihant_oauth_redirect', redirectUrl);
+        localStorage.setItem('swipe_oauth_redirect', redirectUrl);
       } catch {
         // Ignore storage errors
       }

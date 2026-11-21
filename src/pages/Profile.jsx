@@ -258,7 +258,7 @@ export default function Profile() {
   if (loading) {
     return (
 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20">
-        <PageMeta title="My Profile" description="Manage your Arihant account profile and settings." />
+        <PageMeta title="My Profile" description="Manage your Swipe account profile and settings." />
         <div className="h-10 bg-secondary animate-pulse rounded-md w-48 mb-8" />
         <div className="space-y-6">
           {[...Array(3)].map((_, i) => <div key={i} className="h-40 bg-card border border-border rounded-2xl animate-pulse p-6" />)}
@@ -269,7 +269,7 @@ export default function Profile() {
 
   return (
 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-      <PageMeta title="My Profile" description="View and manage your Arihant account information, profile details, and settings." />
+      <PageMeta title="My Profile" description="View and manage your Swipe account information, profile details, and settings." />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

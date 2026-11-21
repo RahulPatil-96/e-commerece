@@ -250,7 +250,7 @@ export default function CouponManager() {
                     required
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                    placeholder="E.G. ARIHANT10"
+                    placeholder="E.G. Swipe10"
                     className={`${inputClass} font-mono uppercase tracking-wider`}
                   />
                   <button

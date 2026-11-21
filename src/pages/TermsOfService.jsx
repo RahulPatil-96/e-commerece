@@ -5,7 +5,7 @@ import { FileText, Scale, RefreshCcw, AlertTriangle } from 'lucide-react';
 export default function TermsOfService() {
   return (
 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-      <PageMeta title="Terms of Service" description="The terms and conditions that govern your use of the Arihant Stationery store and its services." />
+      <PageMeta title="Terms of Service" description="The terms and conditions that govern your use of the Swipe Stationery store and its services." />
 
       <div className="mb-10 pb-6 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
@@ -22,7 +22,7 @@ export default function TermsOfService() {
             <Scale className="w-5 h-5 text-accent" /> 1. Acceptance of Terms
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            By accessing or using the Arihant Stationery website and services, you agree to be bound by these
+            By accessing or using the Swipe Stationery website and services, you agree to be bound by these
             Terms of Service. If you do not agree to these terms, please do not use the site.
           </p>
         </section>
@@ -63,8 +63,8 @@ export default function TermsOfService() {
         <section className="space-y-3">
           <h2 className="text-xl font-display font-medium">5. Intellectual Property</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            All content on this site — including text, graphics, logos, product images, and the Arihant brand — is
-            the property of Arihant & Co. and is protected by applicable copyright and trademark laws. You may not
+            All content on this site — including text, graphics, logos, product images, and the Swipe brand — is
+            the property of Swipe & Co. and is protected by applicable copyright and trademark laws. You may not
             reproduce, distribute, or create derivative works without our prior written permission.
           </p>
         </section>
@@ -72,7 +72,7 @@ export default function TermsOfService() {
         <section className="space-y-3">
           <h2 className="text-xl font-display font-medium">6. Limitation of Liability</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            To the fullest extent permitted by law, Arihant & Co. shall not be liable for any indirect, incidental,
+            To the fullest extent permitted by law, Swipe & Co. shall not be liable for any indirect, incidental,
             special, or consequential damages arising out of or in connection with your use of the site or the
             products purchased. Our total liability shall not exceed the amount paid by you for the relevant order.
           </p>
@@ -102,7 +102,7 @@ export default function TermsOfService() {
           <h2 className="text-xl font-display font-medium">9. Contact</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             For questions about these terms, contact us at{' '}
-            <a href="mailto:hello@arihant.co" className="text-accent hover:underline">hello@arihant.co</a>.
+            <a href="mailto:hello@swipe.co" className="text-accent hover:underline">hello@swipe.co</a>.
           </p>
         </section>
 

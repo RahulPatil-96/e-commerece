@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Plus, Pencil, Trash2, X, Search, Upload, Loader2, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Image } from '@/components/ui/image';
@@ -18,6 +19,67 @@ const EMPTY = {
   dimensions: '', material: '', weight: '', care_instructions: '', color: '',
   personalizable: false, customization_price: '', gallery: []
 };
+
+/**
+ * ImageUploadButton — file picker that uploads directly to ImageKit.
+ * Falls back to URL input if ImageKit is not configured.
+ */
+function ImageUploadButton({ onUploaded, label = 'Upload Image', folder = '/products' }) {
+  const { toast } = useToast();
+  const inputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileChange = async (/** @type {React.ChangeEvent<HTMLInputElement>} */ e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Invalid file type', description: 'Please select an image file.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Max image size is 10 MB.', variant: 'destructive' });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const result = await apiClient.upload.toImageKit(file, folder);
+      onUploaded(result.url);
+      toast({ title: 'Image uploaded', description: 'Stored in ImageKit successfully.' });
+    } catch (err) {
+      toast({
+        title: 'Upload failed',
+        description: err instanceof Error ? err.message : 'Could not upload image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+      // Reset so the same file can be re-selected
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => inputRef.current?.click()}
+      disabled={uploading}
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-accent-foreground text-xs font-semibold hover:bg-accent/90 transition-all disabled:opacity-60 shadow-glow"
+    >
+      {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+      {uploading ? 'Uploading…' : label}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+    </button>
+  );
+}
 
 export default function ProductManager() {
   const { toast } = useToast();
@@ -69,6 +131,7 @@ export default function ProductManager() {
       customization_price: p.customization_price != null ? String(p.customization_price) : '',
       color: p.color || '',
       tags: p.tags || [],
+      gallery: p.gallery || [],
     });
     setTagInput('');
     setModalOpen(true);
@@ -92,17 +155,6 @@ export default function ProductManager() {
     }
   };
 
-  const addGalleryImage = () => {
-    const url = prompt('Enter image URL:');
-    if (url?.trim()) {
-      setForm({ ...form, gallery: [...(form.gallery || []), url.trim()] });
-    }
-  };
-
-  const removeGalleryImage = (idx) => {
-    setForm({ ...form, gallery: (form.gallery || []).filter((_, i) => i !== idx) });
-  };
-
   const addNewCategory = async () => {
     if (!newCategoryInput.trim()) return;
     try {
@@ -124,8 +176,10 @@ export default function ProductManager() {
       setSaving(false);
       return;
     }
+    // Bug 23: do NOT send slug — the server generates it
+    const { slug: _slug, ...formWithoutSlug } = form;
     const payload = {
-      ...form,
+      ...formWithoutSlug,
       price: Number(form.price),
       wholesale_price: form.wholesale_price !== '' && form.wholesale_price !== null && form.wholesale_price !== undefined ? Number(form.wholesale_price) : null,
       stock: Number(form.stock) || 0,
@@ -134,15 +188,19 @@ export default function ProductManager() {
       gallery: form.gallery || [],
     };
     try {
+      let savedProduct;
       if (editing) {
-        await apiClient.entities.Product.update(editing.id, payload);
+        savedProduct = await apiClient.entities.Product.update(editing.id, payload);
         toast({ title: 'Product updated' });
       } else {
-        await apiClient.entities.Product.create(payload);
+        savedProduct = await apiClient.entities.Product.create(payload);
         toast({ title: 'Product created' });
+        setSearch('');
       }
+      setProducts((current) => editing
+        ? current.map((product) => product.id === savedProduct.id ? savedProduct : product)
+        : [savedProduct, ...current.filter((product) => product.id !== savedProduct.id)]);
       setModalOpen(false);
-      fetchProducts();
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : 'Failed to save product',
@@ -153,7 +211,11 @@ export default function ProductManager() {
     }
   };
 
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const searchTerm = search.trim().toLowerCase();
+  const filtered = products.filter((product) =>
+    String(product.name || '').toLowerCase().includes(searchTerm) ||
+    String(product.sku || '').toLowerCase().includes(searchTerm)
+  );
 
   return (
     <div className="space-y-6">
@@ -241,16 +303,24 @@ export default function ProductManager() {
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground text-xs">
+                    No products found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       )}
 
       {/* Edit / Add Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setModalOpen(false)}>
+      {modalOpen && createPortal(
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setModalOpen(false)}>
           <div
-            className="relative bg-card border border-border/80 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-lift animate-scale-in"
+            className="relative bg-card border border-border/80 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto overscroll-contain shadow-lift animate-scale-in"
+            data-lenis-prevent
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-card border-b border-border/60 px-6 py-4 flex items-center justify-between z-10">
@@ -258,27 +328,93 @@ export default function ProductManager() {
               <button onClick={() => setModalOpen(false)} className="p-2 rounded-full hover:bg-secondary"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4 text-xs">
+
+              {/* Product Title */}
               <div>
                 <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Product Title *</label>
                 <input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
               </div>
 
+              {/* Short Summary */}
               <div>
                 <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Short Summary</label>
                 <input value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
               </div>
 
+              {/* Long Description */}
               <div>
                 <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Long Description</label>
                 <textarea rows={3} value={form.long_description} onChange={e => setForm({...form, long_description: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent resize-none" />
               </div>
 
+              {/* Cover Image — ImageKit Upload */}
               <div>
-                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Main Cover Image URL *</label>
-                <input required value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} placeholder="https://..." className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
-                {form.image_url && <div className="mt-2 w-20 h-24 rounded-xl overflow-hidden bg-secondary border border-border/60"><Image src={form.image_url} alt="preview" className="w-full h-full object-cover" fittingType="fill" /></div>}
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-2">Main Cover Image *</label>
+                <div className="flex items-start gap-3">
+                  {/* Preview */}
+                  <div className="w-24 h-28 rounded-2xl overflow-hidden bg-secondary border border-border/60 shrink-0 flex items-center justify-center">
+                    {form.image_url ? (
+                      <Image src={form.image_url} alt="preview" className="w-full h-full object-cover" fittingType="fill" />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <ImageUploadButton
+                      label="Upload from Device"
+                      folder="/products/cover"
+                      onUploaded={(url) => setForm({ ...form, image_url: url })}
+                    />
+                    <p className="text-muted-foreground text-[10px]">— or paste a URL —</p>
+                    <input
+                      value={form.image_url}
+                      onChange={e => setForm({...form, image_url: e.target.value})}
+                      placeholder="https://ik.imagekit.io/..."
+                      className="w-full px-4 py-2.5 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent text-[11px]"
+                    />
+                    {form.image_url && (
+                      <a
+                        href={form.image_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] text-accent hover:underline"
+                      >
+                        <ExternalLink className="w-3 h-3" /> View full image
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
 
+              {/* Gallery Images */}
+              <div>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-2">Gallery Images</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {(form.gallery || []).map((url, idx) => (
+                    <div key={idx} className="relative group w-16 h-16 rounded-xl overflow-hidden bg-secondary border border-border/60">
+                      <Image src={url} alt={`gallery-${idx}`} className="w-full h-full object-cover" fittingType="fill" />
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, gallery: (form.gallery || []).filter((_, i) => i !== idx) })}
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                        aria-label="Remove gallery image"
+                      >
+                        <X className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                  {/* Upload new gallery image */}
+                  <ImageUploadButton
+                    label="Add Photo"
+                    folder="/products/gallery"
+                    onUploaded={(url) => setForm({ ...form, gallery: [...(form.gallery || []), url] })}
+                  />
+                </div>
+                <p className="text-muted-foreground text-[10px]">Upload product photos directly — stored in ImageKit.</p>
+              </div>
+
+              {/* Pricing */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Retail Price (₹) *</label>
@@ -290,14 +426,15 @@ export default function ProductManager() {
                 </div>
               </div>
 
+              {/* Category + Audience + Stock */}
               <div className="grid grid-cols-3 gap-4">
-<div>
+                <div>
                   <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Category *</label>
                   <Select value={form.category || undefined} onValueChange={val => setForm({...form, category: val})}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select category..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[110]">
                       {categoryOptions.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -308,7 +445,7 @@ export default function ProductManager() {
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[110]">
                       {AUDIENCES.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -319,13 +456,119 @@ export default function ProductManager() {
                 </div>
               </div>
 
+              {/* New Category */}
+              <div>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Create New Category</label>
+                <div className="flex gap-2">
+                  <input
+                    value={newCategoryInput}
+                    onChange={e => setNewCategoryInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addNewCategory(); } }}
+                    placeholder="e.g. Art Supplies"
+                    className="flex-1 px-4 py-2.5 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={addNewCategory}
+                    className="px-4 py-2.5 rounded-2xl bg-primary text-primary-foreground font-semibold hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* SKU + Bulk Min */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">SKU</label>
+                  <input value={form.sku} onChange={e => setForm({...form, sku: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Bulk Min Qty</label>
+                  <input type="number" min="1" value={form.bulk_min_qty} onChange={e => setForm({...form, bulk_min_qty: Number(e.target.value)})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                </div>
+              </div>
+
+              {/* Physical Attributes */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Material</label>
+                  <input value={form.material} onChange={e => setForm({...form, material: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Color</label>
+                  <input value={form.color} onChange={e => setForm({...form, color: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Dimensions</label>
+                  <input value={form.dimensions} onChange={e => setForm({...form, dimensions: e.target.value})} placeholder="e.g. 20×15×2 cm" className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                </div>
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Weight</label>
+                  <input value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} placeholder="e.g. 250g" className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                </div>
+              </div>
+
+              {/* Care Instructions */}
+              <div>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Care Instructions</label>
+                <input value={form.care_instructions} onChange={e => setForm({...form, care_instructions: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Tags</label>
+                <div className="flex gap-2 mb-2 flex-wrap">
+                  {form.tags.map((tag, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-accent/10 text-accent text-[11px] font-semibold">
+                      {tag}
+                      <button type="button" onClick={() => setForm({...form, tags: form.tags.filter((_, ti) => ti !== i)})} className="ml-1 hover:text-destructive">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={tagInput}
+                    onChange={e => setTagInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                    placeholder="Add tag..."
+                    className="flex-1 px-4 py-2.5 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                  <button type="button" onClick={addTag} className="px-4 py-2.5 rounded-2xl bg-secondary border border-border/80 font-semibold hover:bg-card transition-colors">Add</button>
+                </div>
+              </div>
+
+              {/* Flags */}
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={form.featured} onChange={e => setForm({...form, featured: e.target.checked})} className="rounded" />
+                  <span className="font-bold uppercase tracking-wider text-muted-foreground">Featured / Bestseller</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={form.personalizable} onChange={e => setForm({...form, personalizable: e.target.checked})} className="rounded" />
+                  <span className="font-bold uppercase tracking-wider text-muted-foreground">Personalizable</span>
+                </label>
+              </div>
+              {form.personalizable && (
+                <div>
+                  <label className="font-bold uppercase tracking-wider text-muted-foreground block mb-1">Customization Price (₹)</label>
+                  <input type="number" min="0" value={form.customization_price} onChange={e => setForm({...form, customization_price: e.target.value})} className="w-full px-4 py-3 rounded-2xl bg-secondary border border-border/80 font-medium focus:outline-none focus:ring-2 focus:ring-accent" />
+                </div>
+              )}
+
+              {/* Actions */}
               <div className="flex gap-3 pt-4 border-t border-border/60">
                 <button type="button" onClick={() => setModalOpen(false)} className="flex-1 border border-border/80 py-3 rounded-full font-semibold hover:bg-secondary transition-colors">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:bg-accent transition-colors disabled:opacity-50">{saving ? 'Saving...' : editing ? 'Update Product' : 'Create Product'}</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-primary text-primary-foreground py-3 rounded-full font-semibold hover:bg-accent transition-colors disabled:opacity-50">
+                  {saving ? 'Saving...' : editing ? 'Update Product' : 'Create Product'}
+                </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

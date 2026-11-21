@@ -273,7 +273,7 @@ export default function Shop() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-      <PageMeta title="Shop Luxury Stationery" description="Explore Arihant handcrafted notebooks, fountain pens, executive gift kits, and desk accessories." />
+      <PageMeta title="Shop Luxury Stationery" description="Explore Swipe handcrafted notebooks, fountain pens, executive gift kits, and desk accessories." />
 
       {/* Page Header */}
       <div className="mb-12 space-y-3">

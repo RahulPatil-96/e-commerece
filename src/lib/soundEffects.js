@@ -4,30 +4,64 @@
  * Disabled by default. Enabled via user toggle.
  */
 
+// Track whether the user has made at least one interaction.
+// Web Audio API requires a prior user gesture on Safari / iOS.
+let _userHasInteracted = false;
+if (typeof window !== 'undefined') {
+  const markInteracted = () => { _userHasInteracted = true; };
+  window.addEventListener('click', markInteracted, { once: true });
+  window.addEventListener('keydown', markInteracted, { once: true });
+  window.addEventListener('touchstart', markInteracted, { once: true, passive: true });
+}
+
 let soundEnabled = false;
+let audioContext;
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', (event) => {
+    _userHasInteracted = true;
+    const target = event.target instanceof Element
+      ? event.target.closest('button, a, [role="button"], input[type="submit"]')
+      : null;
+    if (target) playSound('click');
+  });
+
+  document.addEventListener('pointerover', (event) => {
+    const target = event.target instanceof Element
+      ? event.target.closest('button, a, [role="button"]')
+      : null;
+    const previous = event.relatedTarget instanceof Element
+      ? event.relatedTarget.closest('button, a, [role="button"]')
+      : null;
+    if (target && target !== previous) playSound('hover');
+  });
+}
 
 export const toggleSound = () => {
   soundEnabled = !soundEnabled;
   if (typeof window !== 'undefined') {
-    localStorage.setItem('arihant_sound_enabled', soundEnabled ? 'true' : 'false');
+    localStorage.setItem('swipe_sound_enabled', soundEnabled ? 'true' : 'false');
   }
   return soundEnabled;
 };
 
 export const isSoundEnabled = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('arihant_sound_enabled') === 'true';
+    return localStorage.getItem('swipe_sound_enabled') === 'true';
   }
   return false;
 };
 
 export const playSound = (type = 'click') => {
   if (!isSoundEnabled()) return;
+  if (!_userHasInteracted) return;
 
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    audioContext = audioContext || new AudioCtx();
+    const ctx = audioContext;
+    if (ctx.state === 'suspended') void ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 

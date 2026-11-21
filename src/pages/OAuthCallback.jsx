@@ -27,7 +27,7 @@ export default function OAuthCallback() {
 
     const redirectTo = (() => {
       try {
-        return localStorage.getItem('arihant_oauth_redirect') || '/';
+        return localStorage.getItem('swipe_oauth_redirect') || '/';
       } catch {
         return '/';
       }
@@ -55,7 +55,7 @@ export default function OAuthCallback() {
     if (userParam) {
       try {
         const parsedUser = JSON.parse(userParam);
-        localStorage.setItem('arihant_user_cache', JSON.stringify(parsedUser));
+        localStorage.setItem('swipe_user_cache', JSON.stringify(parsedUser));
       } catch {
         // Ignore malformed user param
       }
@@ -63,7 +63,7 @@ export default function OAuthCallback() {
 
     // Clear the stored redirect target
     try {
-      localStorage.removeItem('arihant_oauth_redirect');
+      localStorage.removeItem('swipe_oauth_redirect');
     } catch {
       // Ignore
     }
@@ -83,7 +83,7 @@ export default function OAuthCallback() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <Loader2 className="w-10 h-10 text-accent animate-spin mb-4" />
       <h1 className="font-display text-2xl font-medium mb-1">Completing sign in…</h1>
-      <p className="text-sm text-muted-foreground">Linking your Google account with Arihant.</p>
+      <p className="text-sm text-muted-foreground">Linking your Google account with Swipe.</p>
     </div>
   );
 }

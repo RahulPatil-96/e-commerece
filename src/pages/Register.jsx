@@ -43,7 +43,7 @@ export default function Register() {
       await authRegister({ email, password });
       toast({
         title: "Account created!",
-        description: "Welcome to Arihant Stationery.",
+        description: "Welcome to Swipe Stationery.",
       });
       navigate("/");
     } catch (err) {

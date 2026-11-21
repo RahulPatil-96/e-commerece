@@ -226,7 +226,7 @@ export default function Cart() {
           key: paymentOrder.keyId || paymentConfig.publishableKey,
           amount: Math.round(paymentOrder.amount * 100),
           currency: paymentOrder.currency || 'INR',
-          name: 'Arihant',
+          name: 'Swipe',
           description: `Order for ${items.length} item${items.length > 1 ? 's' : ''}`,
           order_id: paymentOrder.orderId,
           prefill: {
@@ -276,7 +276,7 @@ export default function Cart() {
   if (placed) {
     return (
       <div className="max-w-xl mx-auto px-4 py-24 text-center space-y-6">
-        <PageMeta title="Order Placed" description="Thank you for your order with Arihant Stationery." />
+        <PageMeta title="Order Placed" description="Thank you for your order with Swipe Stationery." />
         <div className="w-20 h-20 rounded-full bg-accent-soft border border-accent/40 flex items-center justify-center mx-auto shadow-glow">
           <CheckCircle2 className="w-10 h-10 text-accent" />
         </div>
@@ -318,7 +318,7 @@ export default function Cart() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-      <PageMeta title="Cart & Checkout" description="Review items and complete your order with Arihant." />
+      <PageMeta title="Cart & Checkout" description="Review items and complete your order with Swipe." />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 pb-6 border-b border-border/60">
         <div>
@@ -634,7 +634,7 @@ export default function Cart() {
                   <input
                     value={couponCode}
                     onChange={e => setCouponCode(e.target.value)}
-                    placeholder="ARIHANT10"
+                    placeholder="Swipe10"
                     className="flex-1 px-4 py-2.5 rounded-2xl bg-secondary border border-border/80 text-xs font-medium uppercase focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                   <button

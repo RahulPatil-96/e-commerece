@@ -53,13 +53,13 @@ export default function B2B() {
   if (submitted) {
     return (
       <div className="max-w-xl mx-auto px-4 py-24 text-center space-y-6">
-        <PageMeta title="Inquiry Sent" description="Thank you for contacting Arihant B2B Team." />
+        <PageMeta title="Inquiry Sent" description="Thank you for contacting Swipe B2B Team." />
         <div className="w-20 h-20 rounded-full bg-accent-soft border border-accent/40 flex items-center justify-center mx-auto shadow-glow">
           <CheckCircle2 className="w-10 h-10 text-accent" />
         </div>
         <h1 className="font-serif-display text-4xl font-bold tracking-tight">Wholesale Inquiry Received</h1>
         <p className="text-muted-foreground font-light text-base leading-relaxed max-w-md mx-auto">
-          Thank you for reaching out to Arihant Enterprise Division. Our dedicated account executive will review your specifications and contact you within 1 business day.
+          Thank you for reaching out to Swipe Enterprise Division. Our dedicated account executive will review your specifications and contact you within 1 business day.
         </p>
         <Link
           to="/shop"
@@ -73,7 +73,7 @@ export default function B2B() {
 
   return (
     <div>
-      <PageMeta title="Enterprise & Wholesale B2B Stationery" description="Bulk corporate gifting, custom logo foil debossing, and volume pricing from Arihant." />
+      <PageMeta title="Enterprise & Wholesale B2B Stationery" description="Bulk corporate gifting, custom logo foil debossing, and volume pricing from Swipe." />
 
       {/* Luxury Dark B2B Hero */}
       <section className="relative overflow-hidden bg-primary text-primary-foreground py-24 md:py-32">
@@ -83,7 +83,7 @@ export default function B2B() {
             <div className="space-y-6">
               <Reveal>
                 <span className="text-xs font-semibold uppercase tracking-[0.25em] text-accent bg-white/10 border border-white/20 px-4 py-1.5 rounded-full inline-block backdrop-blur-md">
-                  <Building2 className="w-3.5 h-3.5 inline mr-1" /> Arihant Enterprise Division
+                  <Building2 className="w-3.5 h-3.5 inline mr-1" /> Swipe Enterprise Division
                 </span>
               </Reveal>
               <Reveal delay={100}>

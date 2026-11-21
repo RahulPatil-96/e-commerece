@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Save, Plus, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Save, Plus, X, Upload, Loader2 } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
 
 const SECTIONS = [
+  { key: 'home_banner', label: 'Homepage Banner', type: 'home_banner' },
   { key: 'shop_material_options', label: 'Shop Material Options', type: 'material_options' },
   { key: 'shop_color_swatches', label: 'Shop Color Swatches', type: 'color_swatches' },
   { key: 'gift_occasions', label: 'Gift Occasions', type: 'string_list' },
@@ -29,7 +30,9 @@ export default function SiteContentManager() {
   const [content, setContent] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
+  const [uploading, setUploading] = useState(false);
   const [activeSection, setActiveSection] = useState(SECTIONS[0].key);
+  const bannerFileRef = useRef(null);
 
   useEffect(() => {
     loadAllContent();
@@ -82,8 +85,8 @@ export default function SiteContentManager() {
   const handleSaveSection = async (key) => {
     setSaving(prev => ({ ...prev, [key]: true }));
     try {
-      const arr = getValue(key);
-      await apiClient.entities.SiteContent.update(key, arr);
+      const value = key === 'home_banner' ? content[key] || {} : getValue(key);
+      await apiClient.entities.SiteContent.update(key, value);
       toast({ title: 'Saved successfully', description: `${key} updated.` });
     } catch (err) {
       toast({ title: 'Failed to save', description: err instanceof Error ? err.message : 'Error updating content', variant: 'destructive' });
@@ -98,6 +101,40 @@ export default function SiteContentManager() {
 
   const currentSection = SECTIONS.find(s => s.key === activeSection) || SECTIONS[0];
   const currentItems = getValue(currentSection.key);
+  const banner = content.home_banner || { type: 'image', url: '' };
+  const updateBanner = (field, value) => {
+    setContent(prev => ({
+      ...prev,
+      home_banner: { ...(prev.home_banner || { type: 'image', url: '' }), [field]: value },
+    }));
+  };
+
+  const handleBannerUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      toast({ title: 'Invalid file type', description: 'Choose an image or video file.', variant: 'destructive' });
+      event.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const result = await apiClient.upload.toImageKit(file, '/banners');
+      updateBanner('url', result.url);
+      updateBanner('type', file.type.startsWith('video/') ? 'video' : 'image');
+      toast({ title: 'Banner uploaded', description: 'The media is ready to save.' });
+    } catch (err) {
+      toast({
+        title: 'Upload failed',
+        description: err instanceof Error ? err.message : 'Could not upload banner media.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -121,16 +158,20 @@ export default function SiteContentManager() {
         <div className="flex items-center justify-between border-b border-border/60 pb-4">
           <div>
             <h2 className="font-serif-display text-2xl font-bold text-foreground">{currentSection.label}</h2>
-            <p className="text-xs text-muted-foreground">{currentItems.length} items configured</p>
+            <p className="text-xs text-muted-foreground">
+              {currentSection.type === 'home_banner' ? (banner.url ? 'Banner media configured' : 'No banner media configured') : `${currentItems.length} items configured`}
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => addItem(currentSection.key)}
-              className="inline-flex items-center gap-2 border border-border/80 bg-secondary px-4 py-2 rounded-full text-xs font-semibold hover:bg-card transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add Item
-            </button>
+            {currentSection.type !== 'home_banner' && (
+              <button
+                onClick={() => addItem(currentSection.key)}
+                className="inline-flex items-center gap-2 border border-border/80 bg-secondary px-4 py-2 rounded-full text-xs font-semibold hover:bg-card transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Add Item
+              </button>
+            )}
             <button
               onClick={() => handleSaveSection(currentSection.key)}
               disabled={saving[currentSection.key]}
@@ -141,7 +182,59 @@ export default function SiteContentManager() {
           </div>
         </div>
 
-        {/* Section List Items */}
+        {currentSection.type === 'home_banner' ? (
+          <div className="space-y-5">
+            <p className="text-sm text-muted-foreground">
+              Add an image or muted looping video to the background of the homepage hero. Leave the URL empty and save to remove it.
+            </p>
+            <div className="grid sm:grid-cols-[1fr_auto] gap-3">
+              <input
+                type="url"
+                value={banner.url || ''}
+                onChange={(event) => updateBanner('url', event.target.value)}
+                placeholder="Paste an image or video URL"
+                aria-label="Homepage banner media URL"
+                className="w-full px-4 py-3 rounded-xl bg-card border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <button
+                type="button"
+                onClick={() => bannerFileRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-secondary border border-border/80 text-xs font-semibold hover:bg-card transition-colors disabled:opacity-60"
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploading ? 'Uploading...' : 'Upload image or video'}
+              </button>
+              <input
+                ref={bannerFileRef}
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleBannerUpload}
+                className="hidden"
+              />
+            </div>
+            <label className="block max-w-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Media type</span>
+              <select
+                value={banner.type || 'image'}
+                onChange={(event) => updateBanner('type', event.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-card border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              >
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+              </select>
+            </label>
+            {banner.url && (
+              <div className="overflow-hidden rounded-2xl border border-border/60 bg-secondary">
+                {banner.type === 'video' ? (
+                  <video src={banner.url} controls muted playsInline className="max-h-64 w-full object-contain" />
+                ) : (
+                  <img src={banner.url} alt="Homepage banner preview" className="max-h-64 w-full object-contain" />
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="space-y-4">
           {currentItems.map((item, idx) => (
             <div key={idx} className="p-4 rounded-2xl bg-secondary/40 border border-border/40 space-y-3 relative group">
@@ -184,6 +277,7 @@ export default function SiteContentManager() {
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );

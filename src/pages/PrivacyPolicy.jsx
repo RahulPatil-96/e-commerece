@@ -5,7 +5,7 @@ import { ShieldCheck, Mail, Lock, Eye } from 'lucide-react';
 export default function PrivacyPolicy() {
   return (
 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-      <PageMeta title="Privacy Policy" description="How Arihant Stationery collects, uses, and protects your personal information." />
+      <PageMeta title="Privacy Policy" description="How Swipe Stationery collects, uses, and protects your personal information." />
 
       <div className="mb-10 pb-6 border-b border-border">
         <div className="flex items-center gap-3 mb-3">
@@ -22,7 +22,7 @@ export default function PrivacyPolicy() {
             <Eye className="w-5 h-5 text-accent" /> 1. Information We Collect
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            When you use the Arihant store, we collect the following categories of information:
+            When you use the Swipe store, we collect the following categories of information:
           </p>
           <ul className="list-disc pl-5 text-sm text-muted-foreground leading-relaxed space-y-1.5">
             <li><strong className="text-foreground">Account information</strong> — name, email address, phone number, and (optionally) a password hash or Google OAuth identifier when you register.</li>
@@ -93,13 +93,13 @@ export default function PrivacyPolicy() {
           <h2 className="text-xl font-display font-medium">7. Contact Us</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             If you have questions about this policy or your personal data, please reach out to our team at{' '}
-            <a href="mailto:hello@arihant.co" className="text-accent hover:underline">hello@arihant.co</a>.
+            <a href="mailto:hello@swipe.co" className="text-accent hover:underline">hello@Swipe.co</a>.
           </p>
         </section>
 
         <div className="pt-6 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
           <Mail className="w-3.5 h-3.5" />
-          hello@arihant.co · Arihant & Co., Bengaluru, India
+          hello@swipe.co · Swipe & Co., Bengaluru, India
         </div>
       </div>
 

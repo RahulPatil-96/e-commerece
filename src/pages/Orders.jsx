@@ -125,7 +125,7 @@ export default function Orders() {
   if (orders.length === 0) {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center space-y-6">
-        <PageMeta title="My Orders" description="View your stationery order history from Arihant." />
+        <PageMeta title="My Orders" description="View your stationery order history from Swipe." />
         <div className="w-20 h-20 rounded-full bg-secondary border border-border/80 flex items-center justify-center mx-auto shadow-soft">
           <Package className="w-10 h-10 text-muted-foreground/40" />
         </div>
@@ -143,7 +143,7 @@ export default function Orders() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 space-y-10">
-      <PageMeta title="Order History & Fulfillment" description="View tracking details and reorder Arihant stationery products." />
+      <PageMeta title="Order History & Fulfillment" description="View tracking details and reorder Swipe stationery products." />
 
       <div className="flex items-center justify-between pb-6 border-b border-border/60">
         <div>

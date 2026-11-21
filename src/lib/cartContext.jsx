@@ -6,8 +6,8 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 /** @type {React.Context<CartContextValue | null>} */
 const CartContext = createContext(/** @type {CartContextValue | null} */ (null));
 
-const STORAGE_KEY = 'arihant_cart';
-const MODE_KEY = 'arihant_mode';
+const STORAGE_KEY = 'swipe_cart';
+const MODE_KEY = 'swipe_mode';
 
 /**
  * @returns {'retail' | 'wholesale'}

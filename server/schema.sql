@@ -1,5 +1,5 @@
 -- ============================================================================
--- ⚡ ARIHANT E-COMMERCE — PRODUCTION-READY POSTGRESQL DATABASE SCHEMA
+-- ⚡ Swipe E-COMMERCE — PRODUCTION-READY POSTGRESQL DATABASE SCHEMA
 -- ============================================================================
 
 -- Enable Extensions
@@ -446,3 +446,10 @@ CREATE TRIGGER set_updated_at_reviews BEFORE UPDATE ON reviews FOR EACH ROW EXEC
 
 DROP TRIGGER IF EXISTS set_updated_at_coupons ON coupons;
 CREATE TRIGGER set_updated_at_coupons BEFORE UPDATE ON coupons FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ----------------------------------------------------------------------------
+-- COMPOSITE INDEXES FOR COMMON QUERY PATTERNS
+-- ----------------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS reviews_product_helpful_idx ON reviews (product_id, helpful_count DESC);
+CREATE INDEX IF NOT EXISTS orders_user_status_idx ON orders (user_id, status);
+CREATE INDEX IF NOT EXISTS products_fts_idx ON products USING gin(to_tsvector('english', coalesce(name,'') || ' ' || coalesce(description,'')));

@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
     const inquiry = formatInquiry(result.rows[0]);
 
     // Send notification email to admin
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@arihant.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@swipe.com';
     const inquiryUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin?tab=inquiries`;
     
     try {

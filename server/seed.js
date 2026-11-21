@@ -1,5 +1,6 @@
 import { query } from './db.js';
 import bcrypt from 'bcryptjs';
+import { fileURLToPath } from 'url';
 
 // ============================================================
 // SINGLE SOURCE OF TRUTH — All seed / default data lives here.
@@ -38,7 +39,7 @@ export const CATEGORIES = [
 export const PRODUCTS = [
   {
     id: 1,
-    name: 'Arihant Artisan Hardcover Journal (A5)',
+    name: 'Swipe Artisan Hardcover Journal (A5)',
     slug: 'artisan-hardcover-journal-a5',
     description: 'Hand-bound notebook with 160 pages of 120 GSM fountain-pen friendly paper.',
     long_description: 'Designed for writers, creators, and daily thinkers. Features lay-flat 180° binding, expandable back pocket, dual satin ribbon markers, and heavyweight acid-free paper.',
@@ -200,7 +201,7 @@ export const HOME_STATS = [
 export const HOME_TESTIMONIALS = [
   { name: 'Priya Sharma', role: 'Architect, Mumbai', text: 'The paper quality is exceptional. My fountain pens glide — these are the only notebooks I use now.' },
   { name: 'Rohan Mehta', role: 'Founder, BlueSeed Labs', text: 'Ordered 500 branded notebooks for our team. Seamless wholesale process and stellar finish.' },
-  { name: 'Ananya Iyer', role: 'Illustrator', text: 'Beautiful, sustainable, and thoughtfully designed. Arihant gets what creators need.' },
+  { name: 'Ananya Iyer', role: 'Illustrator', text: 'Beautiful, sustainable, and thoughtfully designed. Swipe gets what creators need.' },
 ];
 
 // ---- Seasonal Campaigns ----
@@ -264,8 +265,8 @@ export const B2B_TIERS = [
 // ---- Admin User ----
 export const ADMIN_USER = {
   id: 1,
-  email: 'admin@arihant.com',
-  password_hash: '$2a$10$.3BVO3eEFm4zm/wiblzwDe2QOkwPiwnrM7A4tjz9k/q5gqcmGx0cu', // 'admin123'
+  email: 'admin@swipe.com',
+  password_hash: '$2a$10$LgnOMd6X.KyWTmXx/2/seOaUuy5xqjz/b1pAO7c552LZpQe2wNlEC', // 'admin123'
   role: 'admin',
   is_verified: true,
   created_at: new Date().toISOString(),
@@ -317,7 +318,11 @@ export async function seedDatabase() {
       await query(
         `INSERT INTO categories (name, slug, description, display_order)
          VALUES ($1, $2, $3, $4)
-         ON CONFLICT (slug) DO NOTHING`,
+         ON CONFLICT (slug) DO UPDATE SET
+           name = EXCLUDED.name,
+           description = EXCLUDED.description,
+           display_order = EXCLUDED.display_order,
+           updated_at = CURRENT_TIMESTAMP`,
         [cat.name, cat.slug, cat.description, cat.display_order]
       );
     }
@@ -328,7 +333,28 @@ export async function seedDatabase() {
         `INSERT INTO products 
         (name, slug, description, long_description, price, wholesale_price, category, audience, image_url, gallery, stock, sku, tags, rating, featured, bulk_min_qty, dimensions, material, color, weight, care_instructions, personalizable, customization_price)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
-        ON CONFLICT (slug) DO NOTHING`,
+        ON CONFLICT (slug) DO UPDATE SET
+          name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          long_description = EXCLUDED.long_description,
+          price = EXCLUDED.price,
+          wholesale_price = EXCLUDED.wholesale_price,
+          category = EXCLUDED.category,
+          audience = EXCLUDED.audience,
+          image_url = EXCLUDED.image_url,
+          gallery = EXCLUDED.gallery,
+          sku = EXCLUDED.sku,
+          tags = EXCLUDED.tags,
+          featured = EXCLUDED.featured,
+          bulk_min_qty = EXCLUDED.bulk_min_qty,
+          dimensions = EXCLUDED.dimensions,
+          material = EXCLUDED.material,
+          color = EXCLUDED.color,
+          weight = EXCLUDED.weight,
+          care_instructions = EXCLUDED.care_instructions,
+          personalizable = EXCLUDED.personalizable,
+          customization_price = EXCLUDED.customization_price,
+          updated_at = CURRENT_TIMESTAMP`,
         [
           p.name, p.slug, p.description, p.long_description, p.price, p.wholesale_price,
           p.category, p.audience, p.image_url, JSON.stringify(p.gallery), p.stock, p.sku,
@@ -360,23 +386,51 @@ export async function seedDatabase() {
     for (const entry of siteContentEntries) {
       await query(
         `INSERT INTO site_content (key, value) VALUES ($1, $2)
-         ON CONFLICT (key) DO NOTHING`,
+         ON CONFLICT (key) DO UPDATE
+         SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
         [entry.key, JSON.stringify(entry.value)]
       );
     }
 
-    // Seed Admin User
-    const adminPasswordHash = await bcrypt.hash('admin123', 10);
+    // Keep administrator-managed customization rules when present; the schema
+    // and API fallback both use these defaults for a new database.
     await query(
-      `INSERT INTO users (email, password_hash, role)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (email) DO NOTHING`,
-      ['admin@arihant.com', adminPasswordHash, 'admin']
+      `INSERT INTO customization_rules (id, config) VALUES (1, $1)
+       ON CONFLICT (id) DO NOTHING`,
+      [JSON.stringify(DEFAULT_CUSTOMIZATION_RULES)]
     );
 
-    console.log('🎉 Seed complete! Default admin created (admin@arihant.com / admin123).');
+    // Seed Admin User
+    const adminPasswordHash = await bcrypt.hash('admin123', 10);
+    const adminEmail = 'admin@swipe.com';
+    const existingAdmin = await query(
+      `UPDATE users
+       SET password_hash = $1, role = 'admin', is_verified = true, updated_at = CURRENT_TIMESTAMP
+       WHERE LOWER(email) = LOWER($2)
+       RETURNING id`,
+      [adminPasswordHash, adminEmail]
+    );
+    if (existingAdmin.rows.length === 0) {
+      await query(
+        `INSERT INTO users (email, password_hash, role, is_verified)
+         VALUES ($1, $2, 'admin', true)
+         ON CONFLICT (email) DO UPDATE
+         SET password_hash = EXCLUDED.password_hash,
+             role = 'admin',
+             is_verified = true,
+             updated_at = CURRENT_TIMESTAMP`,
+        [adminEmail, adminPasswordHash]
+      );
+    }
+
+    console.log('🎉 Seed complete! Default admin created or restored (admin@swipe.com / admin123).');
   } catch (err) {
     console.error('⚠️ Error seeding database:', err.message);
   }
+}
+
+// Allow `npm run seed --prefix server` to execute the exported seed function.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  seedDatabase();
 }
 

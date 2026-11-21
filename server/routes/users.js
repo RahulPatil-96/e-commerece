@@ -91,7 +91,7 @@ router.post('/', requireAdmin, async (req, res) => {
 // GET /api/users/me — Get current user profile
 router.get('/me', requireAuth, async (req, res) => {
   try {
-    const result = await query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    const result = await query('SELECT id, email, role, is_verified, first_name, last_name, phone, avatar_url, auth_provider, created_at, updated_at FROM users WHERE id = $1', [req.user.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -164,9 +164,9 @@ router.post('/me/change-password', requireAuth, async (req, res) => {
     try {
       await sendEmail({
         to: userResult.rows[0].email,
-        subject: 'Password Changed - Arihant Account',
+        subject: 'Password Changed - Swipe Account',
         text: 'Your password has been changed successfully. If this was not you, please contact support immediately.',
-        html: '<p>Your password has been changed successfully.</p><p>If this was not you, please <a href="https://support.arihant.com">contact support</a> immediately.</p>',
+        html: '<p>Your password has been changed successfully.</p><p>If this was not you, please <a href="https://support.swipe.com">contact support</a> immediately.</p>',
       });
     } catch (emailError) {
       logger.warn('Password change confirmation email not sent:', { error: emailError.message });

@@ -20,6 +20,9 @@ function formatReview(row) {
 router.get('/', async (req, res) => {
   try {
     const { product_id, sort = 'recent' } = req.query;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
 
     if (!product_id) {
       return res.status(400).json({ message: 'product_id is required' });
@@ -27,16 +30,27 @@ router.get('/', async (req, res) => {
 
     const orderBy = sort === 'helpful' ? 'helpful_count DESC, created_at DESC' : 'created_at DESC';
 
+    const countResult = await query(
+      'SELECT COUNT(*) FROM reviews WHERE product_id = $1',
+      [product_id]
+    );
+    const total = parseInt(countResult.rows[0].count) || 0;
+    const totalPages = Math.ceil(total / limit);
+
     const result = await query(
       `SELECT r.*, u.first_name, u.last_name, u.email 
        FROM reviews r
        JOIN users u ON r.user_id = u.id
        WHERE r.product_id = $1
-       ORDER BY ${orderBy}`,
-      [product_id]
+       ORDER BY ${orderBy}
+       LIMIT $2 OFFSET $3`,
+      [product_id, limit, offset]
     );
 
-    return res.json(result.rows.map(formatReview));
+    return res.json({
+      reviews: result.rows.map(formatReview),
+      pagination: { page, limit, total, totalPages },
+    });
   } catch (error) {
     logger.error('Fetch reviews error:', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Failed to fetch reviews' });
@@ -60,7 +74,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/reviews — Create review (authenticated users only)
 router.post('/', authenticateToken, requireAuth, async (req, res) => {
   try {
-    const { product_id, rating, title, review_text, verified_purchase } = req.body;
+    const { product_id, rating, title, review_text } = req.body;
 
     // Validation
     if (!product_id || !rating) {
@@ -81,11 +95,21 @@ router.post('/', authenticateToken, requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'You have already reviewed this product' });
     }
 
+    // Server-side verified_purchase check — do NOT trust the client
+    let serverVerifiedPurchase = false;
+    if (req.user) {
+      const purchaseCheck = await query(
+        `SELECT id FROM orders WHERE user_id = $1 AND items::text LIKE $2 AND payment_status = 'paid' LIMIT 1`,
+        [req.user.id, `%"product_id":${Number(product_id)}%`]
+      );
+      serverVerifiedPurchase = purchaseCheck.rows.length > 0;
+    }
+
     const result = await query(
       `INSERT INTO reviews (user_id, product_id, rating, title, review_text, verified_purchase)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [req.user.id, product_id, rating, title || null, review_text || null, verified_purchase || false]
+      [req.user.id, product_id, rating, title || null, review_text || null, serverVerifiedPurchase]
     );
 
     return res.status(201).json(formatReview(result.rows[0]));

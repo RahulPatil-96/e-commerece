@@ -8,7 +8,7 @@ export default function Footer() {
       {/* Background Watermark Typography */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 pointer-events-none select-none overflow-hidden w-full text-center">
         <span className="font-serif-display text-[15vw] font-black text-white/[0.03] leading-none tracking-tighter uppercase block">
-          ARIHANT
+          Swipe
         </span>
       </div>
 
@@ -39,15 +39,19 @@ export default function Footer() {
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          
+
           {/* Brand & Newsletter Column */}
           <div className="lg:col-span-5 space-y-6">
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent via-[#D9B766] to-[#284B3D] flex items-center justify-center shadow-glow">
-                <span className="font-serif-display text-xl font-bold text-white">A</span>
+              <span className="group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border-[1.5px] border-[#E8C878] bg-gradient-to-br from-[#173D32] via-[#0D2B24] to-[#081C18] shadow-[0_0_0_1px_rgba(217,183,102,0.18),0_0_12px_rgba(217,183,102,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-500 hover:scale-105 hover:-rotate-3 hover:shadow-[0_0_22px_rgba(217,183,102,0.45)]">
+                <span className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-[#D9B766]/15 via-transparent to-white/10 opacity-80" />
+                <span className="relative z-10 bg-gradient-to-b from-[#FFF2C5] via-[#D9B766] to-[#B18A42] bg-clip-text font-serif-display text-[25px] font-bold leading-none text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+                  S
+                </span>
+                <span className="pointer-events-none absolute inset-[3px] rounded-[13px] border border-[#D9B766]/30" />
               </span>
               <span className="font-serif-display text-3xl font-bold tracking-tight text-white">
-                Arihant<span className="text-accent font-sans">.</span>
+                Swipe<span className="text-accent font-sans">.</span>
               </span>
             </div>
 
@@ -114,7 +118,7 @@ export default function Footer() {
                 <li><Link to="/privacy-policy" className="text-white/70 hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/terms" className="text-white/70 hover:text-white transition-colors">Terms of Service</Link></li>
                 <li className="pt-2 text-xs text-white/50 space-y-1">
-                  <div className="flex items-center gap-2 text-white/80"><Mail className="w-3.5 h-3.5 text-accent" /> hello@arihant.co</div>
+                  <div className="flex items-center gap-2 text-white/80"><Mail className="w-3.5 h-3.5 text-accent" /> hello@swipe.co</div>
                   <div className="flex items-center gap-2 text-white/80"><Phone className="w-3.5 h-3.5 text-accent" /> +91 98765 43210</div>
                 </li>
               </ul>
@@ -125,7 +129,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 relative z-10 text-xs text-white/50">
-          <p>© {new Date().getFullYear()} Arihant Luxury Stationery Pvt. Ltd. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Swipe Luxury Stationery Pvt. Ltd. All rights reserved.</p>
           <p className="flex items-center gap-1.5">
             Designed for Excellence with <Heart className="w-3.5 h-3.5 text-accent fill-accent" /> in Bengaluru
           </p>

@@ -1,15 +1,15 @@
 import swaggerJSDoc from 'swagger-jsdoc';
 
 // ============================================================================
-// ⚡ ARIHANT E-COMMERCE — OPENAPI 3.0 SPECIFICATION
+// ⚡ Swipe E-COMMERCE — OPENAPI 3.0 SPECIFICATION
 // ============================================================================
 
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
-    title: 'Arihant Stationery API',
+    title: 'Swipe Stationery API',
     version: '1.0.0',
-    description: `REST API for the Arihant premium handcrafted stationery store.
+    description: `REST API for the Swipe premium handcrafted stationery store.
 
 ## Auth
 Most protected endpoints accept a JWT via the \`Authorization: Bearer <token>\` header.
@@ -21,8 +21,8 @@ Public auth endpoints live under \`/api/auth\`. Google OAuth flow:
 
 Interactive docs are available at \`/api-docs\`.`,
     contact: {
-      name: 'Arihant Support',
-      email: 'hello@arihant.co',
+      name: 'Swipe Support',
+      email: 'hello@swipe.co',
     },
     license: {
       name: 'Proprietary',

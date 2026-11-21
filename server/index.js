@@ -9,7 +9,6 @@ import passport from 'passport';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger.js';
 import { initDb } from './db.js';
-import { seedDatabase } from './seed.js';
 import authRouter from './routes/auth.js';
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
@@ -23,6 +22,7 @@ import siteContentRouter from './routes/site-content.js';
 import reviewsRouter from './routes/reviews.js';
 import couponsRouter from './routes/coupons.js';
 import reportsRouter from './routes/reports.js';
+import uploadRouter from './routes/upload.js';
 import logger from './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,7 +45,8 @@ const allowedOrigins = process.env.CORS_ORIGINS
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.) or wildcard * or matching origin
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    const isWildcard = allowedOrigins.includes('*') && process.env.NODE_ENV !== 'production';
+    if (!origin || isWildcard || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS`));
@@ -91,6 +92,37 @@ app.use(express.json());
 // Initialize Passport for Google OAuth
 app.use(passport.initialize());
 
+// Security headers — equivalent to helmet() without the extra dependency.
+// Applied to every response before routing.
+app.use((req, res, next) => {
+  // Prevent MIME sniffing
+  res.set('X-Content-Type-Options', 'nosniff');
+  // Deny framing (clickjacking protection)
+  res.set('X-Frame-Options', 'DENY');
+  // Legacy XSS filter (belt-and-suspenders)
+  res.set('X-XSS-Protection', '1; mode=block');
+  // Don't send referrer on downgrade; send origin on same-origin
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Restrict powerful browser features
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+  // Force HTTPS for 1 year (enable once you have a stable domain + cert)
+  if (process.env.NODE_ENV === 'production') {
+    res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  // Basic CSP — tighten per your CDN/ImageKit/Razorpay domains before launch
+  res.set(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https://ik.imagekit.io blob:; " +
+    "connect-src 'self' https://api.razorpay.com; " +
+    "frame-src https://api.razorpay.com; " +
+    "font-src 'self' data:;"
+  );
+  next();
+});
+
 // Request logger with Winston
 app.use((req, res, next) => {
   const start = Date.now();
@@ -113,7 +145,6 @@ app.use('/api', (req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('X-Frame-Options', 'DENY');
   res.set('X-XSS-Protection', '1; mode=block');
-
 // Cache product and category endpoints. The ETag is derived from a content
   // hash of the response body so it stays stable across requests with the same
   // data (proper HTTP caching), instead of changing every single request.
@@ -191,10 +222,11 @@ app.use('/api/site-content', siteContentRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/coupons', couponsRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/upload', uploadRouter);
 
 // Swagger / OpenAPI documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: 'Arihant Stationery API Docs',
+  customSiteTitle: 'Swipe Stationery API Docs',
   swaggerOptions: {
     persistAuthorization: true,
     displayRequestDuration: true,
@@ -259,19 +291,20 @@ async function startServer() {
     }
 
     // Warn if optional but recommended env vars are missing
-    const recommendedVars = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'SMTP_HOST', 'SMTP_USER'];
+    const recommendedVars = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'SMTP_HOST', 'SMTP_USER', 'IMAGEKIT_PUBLIC_KEY', 'IMAGEKIT_PRIVATE_KEY', 'IMAGEKIT_URL_ENDPOINT'];
     const missingRecommended = recommendedVars.filter(varName => !process.env[varName]);
     if (missingRecommended.length > 0) {
       logger.warn(`Missing optional environment variables: ${missingRecommended.join(', ')}. Some features may not work.`);
     }
 
-await initDb();
-    await seedDatabase();
+    await initDb();
+    // Run 'npm run seed' once manually to populate admin user, categories and
+    // site content. Removed from auto-start to avoid DDL overhead on every restart.
 
     // Start the HTTP server now that the DB is ready.
     app.listen(PORT, () => {
-      logger.info(`Arihant API server running on http://localhost:${PORT}`);
-      console.log(`✅ Arihant API server listening on port ${PORT}`);
+      logger.info(`Swipe API server running on http://localhost:${PORT}`);
+      console.log(`✅ Swipe API server listening on port ${PORT}`);
     });
 
     // Run auth cleanup periodically (first run shortly after startup).

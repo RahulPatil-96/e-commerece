@@ -3,14 +3,14 @@ import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
 
 /**
- * Order receipt PDF generator for Arihant Luxury Stationery.
+ * Order receipt PDF generator for Swipe Luxury Stationery.
  *
  * Renders a parcel-ready receipt as styled HTML (so the browser renders the ₹
  * rupee symbol and handles text layout), captures it at its NATURAL height with
  * html2canvas, then scales it to fit within a single A5 page.
  */
 
-const BRAND = 'Arihant Luxury Stationery';
+const BRAND = 'Swipe Luxury Stationery';
 const ACCENT = '#C7A451'; // Champagne Gold
 const FOREST = '#284B3D'; // Deep Forest Green
 const DARK = '#161616'; // Warm Charcoal
@@ -297,7 +297,7 @@ let custom = '';
     <tr>
       <td style="padding:14px 24px; vertical-align:middle;">
         <div style="font-family:Georgia, 'Times New Roman', serif; font-weight:bold; font-size:12px; color:${FOREST}; line-height:1.3;">${BRAND}</div>
-        <div style="font-size:8px; color:${MUTED}; margin-top:2px; line-height:1.3;">Thank you for partnering with Arihant!</div>
+        <div style="font-size:8px; color:${MUTED}; margin-top:2px; line-height:1.3;">Thank you for partnering with Swipe!</div>
       </td>
       <td style="padding:14px 24px; vertical-align:middle; text-align:right;">
         <div style="font-size:10px; font-weight:bold; color:${DARK}; line-height:1.3;">Order #${esc(

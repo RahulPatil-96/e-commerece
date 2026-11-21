@@ -45,6 +45,7 @@ export default function Navbar() {
     .filter(Boolean)
     .join(' ') || 'User';
   const showAnnouncement = !scrolled;
+  const handleSoundToggle = () => setSoundOn(toggleSound());
 
   return (
     <>
@@ -52,7 +53,7 @@ export default function Navbar() {
       <div className={`bg-primary text-primary-foreground border-b border-white/10 overflow-hidden transition-all duration-500 ${showAnnouncement ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-center gap-2 text-xs md:text-[13px] tracking-wide font-medium">
           <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
-          <span className="truncate">Complimentary Express Shipping on Orders Over ₹999 · Use code <span className="text-accent font-semibold">ARIHANT10</span></span>
+          <span className="truncate">Complimentary Express Shipping on Orders Over ₹999 · Use code <span className="text-accent font-semibold">Swipe10</span></span>
           <Link to="/shop" className="hidden sm:inline-flex items-center gap-0.5 text-accent font-semibold hover:underline shrink-0 ml-1">
             Shop Collection <ChevronRight className="w-3.5 h-3.5" />
           </Link>
@@ -66,12 +67,16 @@ export default function Navbar() {
 
             {/* Brand Logo */}
             <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-              <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-accent via-[#D9B766] to-[#284B3D] flex items-center justify-center shadow-glow transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3">
-                <span className="font-serif-display text-lg font-bold text-white">A</span>
+              <span className="group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border-[1.5px] border-[#E8C878] bg-gradient-to-br from-[#173D32] via-[#0D2B24] to-[#081C18] shadow-[0_0_0_1px_rgba(217,183,102,0.18),0_0_12px_rgba(217,183,102,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-500 hover:scale-105 hover:-rotate-3 hover:shadow-[0_0_22px_rgba(217,183,102,0.45)]">
+                <span className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-[#D9B766]/15 via-transparent to-white/10 opacity-80" />
+                <span className="relative z-10 bg-gradient-to-b from-[#FFF2C5] via-[#D9B766] to-[#B18A42] bg-clip-text font-serif-display text-[25px] font-bold leading-none text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]">
+                  S
+                </span>
+                <span className="pointer-events-none absolute inset-[3px] rounded-[13px] border border-[#D9B766]/30" />
               </span>
               <div className="flex flex-col">
                 <span className="font-serif-display text-xl md:text-2xl font-bold tracking-tight text-foreground">
-                  Arihant<span className="text-accent font-sans">.</span>
+                  Swipe<span className="text-accent font-sans">.</span>
                 </span>
                 <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground font-semibold -mt-1 hidden sm:block">
                   Luxury Stationery
@@ -117,8 +122,8 @@ export default function Navbar() {
                 <button
                   onClick={() => setMode('retail')}
                   className={`px-3 py-1.5 rounded-full transition-all duration-300 ${mode === 'retail'
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   Retail
@@ -126,8 +131,8 @@ export default function Navbar() {
                 <button
                   onClick={() => setMode('wholesale')}
                   className={`px-3 py-1.5 rounded-full transition-all duration-300 ${mode === 'wholesale'
-                      ? 'bg-accent text-accent-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-accent text-accent-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   Wholesale
@@ -136,10 +141,7 @@ export default function Navbar() {
 
               {/* Sound Design Toggle */}
               <button
-                onClick={() => {
-                  const active = toggleSound();
-                  setSoundOn(active);
-                }}
+                onClick={handleSoundToggle}
                 className="hidden xl:flex p-2.5 rounded-full bg-secondary/80 border border-border/60 hover:bg-accent-soft hover:text-accent transition-all duration-300 shadow-soft text-foreground"
                 aria-label="Toggle tactile sound"
                 title={soundOn ? "Tactile Audio Active" : "Enable Tactile Audio"}
@@ -243,7 +245,7 @@ export default function Navbar() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 h-20 border-b border-border/60">
-              <span className="font-serif-display text-2xl font-bold">Arihant<span className="text-accent">.</span></span>
+              <span className="font-serif-display text-2xl font-bold">Swipe<span className="text-accent">.</span></span>
               <button onClick={() => setOpen(false)} className="p-2.5 rounded-full bg-secondary hover:bg-accent-soft" aria-label="Close">
                 <X className="w-5 h-5" />
               </button>
@@ -289,6 +291,15 @@ export default function Navbar() {
                   </button>
                 </div>
               </div>
+
+              <button
+                onClick={handleSoundToggle}
+                className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl bg-secondary text-sm font-medium hover:bg-accent-soft transition-colors"
+                aria-label="Toggle tactile sound"
+              >
+                <span>Tactile sounds {soundOn ? 'on' : 'off'}</span>
+                {soundOn ? <Volume2 className="w-4 h-4 text-accent" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+              </button>
             </nav>
           </div>
         </div>

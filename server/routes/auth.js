@@ -110,10 +110,10 @@ function signToken(user) {
 }
 
 async function sendVerificationEmail(email, code) {
-  const confirmMessage = `Use the following code to verify your Arihant account: ${code}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`;
+  const confirmMessage = `Use the following code to verify your Swipe account: ${code}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`;
   await sendEmail({
     to: email,
-    subject: 'Verify your Arihant account',
+    subject: 'Verify your Swipe account',
     text: confirmMessage,
     html: `<p>${confirmMessage}</p>`,
   });
@@ -124,17 +124,17 @@ async function sendPasswordResetEmail(email, token) {
   const message = `Click the link below to reset your password. This link expires in ${RESET_EXPIRY_MINUTES} minutes.`;
   await sendEmail({
     to: email,
-    subject: 'Reset your Arihant password',
+    subject: 'Reset your Swipe password',
     text: `${message}\n\n${resetUrl}`,
     html: `<p>${message}</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
   });
 }
 
 async function sendPasswordChangeConfirmationEmail(email) {
-  const message = `Your Arihant account password has been changed successfully. If you did not make this change, please contact support immediately.`;
+  const message = `Your Swipe account password has been changed successfully. If you did not make this change, please contact support immediately.`;
   await sendEmail({
     to: email,
-    subject: 'Password Changed - Arihant Account',
+    subject: 'Password Changed - Swipe Account',
     text: message,
     html: `<p>${message}</p><p>If this was not you, please reset your password or contact support.</p>`,
   });
@@ -142,7 +142,7 @@ async function sendPasswordChangeConfirmationEmail(email) {
 
 async function getUserByEmail(email) {
   const normalizedEmail = normalizeEmail(email);
-  const { rows } = await query('SELECT * FROM users WHERE email = $1', [normalizedEmail]);
+  const { rows } = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [normalizedEmail]);
   return rows[0];
 }
 
@@ -152,7 +152,7 @@ router.post('/register', async (req, res) => {
     const normalizedEmail = normalizeEmail(email);
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const existing = await query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+    const existing = await query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [normalizedEmail]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ message: 'Email already registered' });
     }
@@ -329,10 +329,14 @@ router.post('/reset-password', async (req, res) => {
     await query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetEntry.user_id]);
     await query('UPDATE password_resets SET used = true WHERE id = $1', [resetEntry.id]);
 
-    // Send confirmation email
-    await sendPasswordChangeConfirmationEmail(resetEntry.email);
+    // Send confirmation email — must not fail the reset if SMTP is down.
+    try {
+      await sendPasswordChangeConfirmationEmail(resetEntry.email);
+    } catch (emailError) {
+      logger.warn('Password change confirmation email not sent:', { error: emailError.message });
+    }
 
-    return res.json({ success: true, message: 'Password reset successfully. Confirmation email sent.' });
+    return res.json({ success: true, message: 'Password reset successfully.' });
   } catch (error) {
     logger.error('Reset password error:', { error: error.message, stack: error.stack });
     res.status(400).json({ message: error.message || 'Failed to reset password' });

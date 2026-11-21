@@ -33,3 +33,7 @@ dist-ssr
 .env
 .vite
 *.md
+
+# Dev notes (not for public repo)
+BUG_REPORT.md
+todo.md

@@ -5,11 +5,19 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-const categorySchema = z.object({
+export const categorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   image_url: z.string().optional(),
-  display_order: z.preprocess((val) => Number(val), z.number().int().positive().optional()),
+  display_order: z.preprocess(
+    (val) => {
+      if (val === undefined || val === null || (typeof val === 'string' && val.trim() === '')) {
+        return undefined;
+      }
+      return typeof val === 'number' || typeof val === 'string' ? Number(val) : val;
+    },
+    z.number().int().nonnegative().optional()
+  ),
 });
 
 function formatCategory(row) {

@@ -2,7 +2,10 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, FileDown, Search } from 'lucide-react';
 import { apiClient } from '@/api/apiClient';
 import { useToast } from '@/components/ui/use-toast';
-import { downloadOrderReceiptPdf } from '@/utils/orderReceiptPdf';
+// Lazy-loaded: jsPDF + html2canvas + QRCode are heavy (≈620 kB). Only admins
+// ever download receipts, so we import the module on-demand the first time
+// handleDownloadReceipt is called rather than including it in the initial bundle.
+// The import() call is cached by the browser after the first load.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -15,7 +18,7 @@ const ORDER_TYPES = ['retail', 'wholesale', 'bulk', 'b2b'];
 
 const statusColor = (/** @type {string | undefined} */ s) => ({
   pending: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  confirmed: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  processing: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   shipped: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   delivered: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   cancelled: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -106,9 +109,10 @@ export default function OrdersManager() {
     }
   };
 
-  const handleDownloadReceipt = (order) => {
+  const handleDownloadReceipt = async (order) => {
     try {
-      downloadOrderReceiptPdf(order);
+      const { downloadOrderReceiptPdf } = await import('@/utils/orderReceiptPdf');
+      await downloadOrderReceiptPdf(order);
       toast({ title: 'Receipt PDF generated', description: `Invoice downloaded for Order #${order.id}` });
     } catch (err) {
       toast({ title: 'Could not generate PDF receipt', description: err instanceof Error ? err.message : 'Try again.', variant: 'destructive' });

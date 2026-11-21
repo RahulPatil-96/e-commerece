@@ -121,7 +121,7 @@ export default function SearchSuggestions({ onSelect = () => {} }) {
               {loading ? (
                 <div className="py-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
                   <Loader2 className="w-6 h-6 text-accent animate-spin" />
-                  <span>Searching Arihant catalog...</span>
+                  <span>Searching Swipe catalog...</span>
                 </div>
               ) : suggestions.length > 0 ? (
                 <div className="space-y-1">

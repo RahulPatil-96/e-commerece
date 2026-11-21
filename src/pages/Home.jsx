@@ -43,6 +43,7 @@ export default function Home() {
   const [marqueeItems, setMarqueeItems] = useState(/** @type {any[]} */([]));
   const [stats, setStats] = useState(/** @type {any[]} */([]));
   const [testimonials, setTestimonials] = useState(/** @type {any[]} */([]));
+  const [homeBanner, setHomeBanner] = useState(/** @type {{ type?: string, url?: string } | null} */(null));
   const [contentLoading, setContentLoading] = useState(true);
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function Home() {
         }
         if (data.home_stats) setStats(data.home_stats);
         if (data.home_testimonials) setTestimonials(data.home_testimonials);
+        if (data.home_banner?.url) setHomeBanner(data.home_banner);
       })
       .catch(() => {
         // Fallbacks handled gracefully
@@ -94,10 +96,27 @@ export default function Home() {
 
   return (
     <div className="overflow-hidden bg-background text-foreground">
-      <PageMeta title="Arihant Luxury Stationery & AI Corporate Gifting" description="World-class AI-powered corporate gifting, executive notebooks, and custom stationery for modern enterprises." />
+      <PageMeta title="Swipe Luxury Stationery & AI Corporate Gifting" description="World-class AI-powered corporate gifting, executive notebooks, and custom stationery for modern enterprises." />
 
       {/* 1. ULTRA HERO SECTION */}
       <section className="relative min-h-[90vh] flex flex-col items-center justify-center pt-8 pb-16 px-4 overflow-hidden">
+        {homeBanner?.url && (
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            {homeBanner.type === 'video' ? (
+              <video
+                src={homeBanner.url}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-full object-cover opacity-35"
+              />
+            ) : (
+              <img src={homeBanner.url} alt="" className="w-full h-full object-cover opacity-35" />
+            )}
+            <div className="absolute inset-0 bg-background/35" />
+          </div>
+        )}
         {/* Ambient Glow & Grid Backdrop */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/15 rounded-full blur-[140px] pointer-events-none" />
         <div className="absolute inset-0 bg-grid-pattern opacity-60 pointer-events-none" />
@@ -515,7 +534,7 @@ export default function Home() {
                 <span className="text-gradient-gold italic">Let Yours Begin Here.</span>
               </h2>
               <p className="text-white/80 font-light text-base sm:text-xl max-w-xl mx-auto leading-relaxed">
-                Join visionaries, global unicorns, and premier corporate teams who entrust their desk culture to Arihant.
+                Join visionaries, global unicorns, and premier corporate teams who entrust their desk culture to Swipe.
               </p>
               <div className="flex flex-wrap gap-4 justify-center pt-6">
                 <Link

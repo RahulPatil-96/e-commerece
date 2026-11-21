@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /orders
+Disallow: /profile
+Disallow: /cart
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /oauth-callback
+
+Sitemap: https://swipeandco.vercel.app/sitemap.xml

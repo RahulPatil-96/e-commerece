@@ -1,6 +1,7 @@
 import express from 'express';
 import Razorpay from 'razorpay';
 import logger from '../utils/logger.js';
+import { authenticateToken, requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ export function buildRazorpayOrderPayload({ amount, currency = 'inr', order_id, 
 }
 
 // POST /api/payments/create-payment-intent
-router.post('/create-payment-intent', async (req, res) => {
+router.post('/create-payment-intent', authenticateToken, requireAuth, async (req, res) => {
   try {
     if (!razorpayClient) {
       return res.status(503).json({ message: 'Payment service is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.' });
@@ -87,6 +88,15 @@ router.post('/webhook', async (req, res) => {
     const event = req.body.event;
     if (event === 'payment.authorized') {
       logger.info('Payment authorized:', { id: req.body.payload?.payment?.entity?.id });
+      const paymentId = req.body.payload?.payment?.entity?.id;
+      const razorpayOrderId = req.body.payload?.payment?.entity?.order_id;
+      if (razorpayOrderId) {
+        const { query } = await import('../db.js');
+        await query(
+          "UPDATE orders SET payment_status = 'paid', status = 'processing', updated_at = CURRENT_TIMESTAMP WHERE razorpay_order_id = $1 AND payment_status != 'paid'",
+          [razorpayOrderId]
+        ).catch(err => logger.warn('Webhook order update failed:', { error: err.message }));
+      }
     } else if (event === 'payment.failed') {
       logger.warn('Payment failed:', { id: req.body.payload?.payment?.entity?.id });
     }

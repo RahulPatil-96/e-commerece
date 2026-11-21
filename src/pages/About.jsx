@@ -31,7 +31,7 @@ export default function About() {
 
   return (
     <div>
-      <PageMeta title="About" description="Learn about Arihant’s craftsmanship, sustainability values, and design philosophy." />
+      <PageMeta title="About" description="Learn about Swipe’s craftsmanship, sustainability values, and design philosophy." />
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -41,7 +41,7 @@ export default function About() {
               Tools for<br />thoughtful<br /><span className="italic text-accent">work.</span>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Arihant started with a simple frustration: beautiful stationery was either too expensive or poorly made. So we made our own.
+              Swipe started with a simple frustration: beautiful stationery was either too expensive or poorly made. So we made our own.
             </p>
             <p className="text-muted-foreground leading-relaxed">
               From a tiny studio in Indiranagar to thousands of desks across India, we've stayed true to one belief — the things you write with should make you want to write more.

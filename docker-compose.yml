@@ -3,18 +3,18 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: arihant-db
+    container_name: swipe-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: arihant
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arihant_secret}
-      POSTGRES_DB: arihant
+      POSTGRES_USER: swipe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swipe_secret}
+      POSTGRES_DB: swipe
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U arihant"]
+      test: ["CMD-SHELL", "pg_isready -U swipe"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,14 +23,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: arihant-app
+    container_name: swipe-app
     restart: unless-stopped
     ports:
       - "5000:5000"
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://arihant:${POSTGRES_PASSWORD:-arihant_secret}@postgres:5432/arihant
+      DATABASE_URL: postgresql://swipe:${POSTGRES_PASSWORD:-swipe_secret}@postgres:5432/swipe
       JWT_SECRET: ${JWT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:5000}
@@ -39,8 +39,8 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASS: ${SMTP_PASS}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@arihant.com}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Arihant Stationery}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@swipe.com}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Swipe Stationery}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
