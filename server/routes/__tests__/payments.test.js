@@ -1,4 +1,20 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// Mock DB and auth so payments.js can be imported without DATABASE_URL
+vi.mock('../../db.js', () => ({
+  query: vi.fn(),
+  pool: { on: vi.fn() },
+}));
+
+vi.mock('../middleware/auth.js', () => ({
+  authenticateToken: vi.fn((_req, _res, next) => next()),
+  requireAuth: vi.fn((_req, _res, next) => next()),
+}));
+
+vi.mock('../../utils/logger.js', () => ({
+  default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
+}));
+
 import { buildRazorpayOrderPayload } from '../payments.js';
 
 describe('buildRazorpayOrderPayload', () => {
