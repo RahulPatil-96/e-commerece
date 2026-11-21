@@ -6,7 +6,7 @@ vi.mock('../../db.js', () => ({
   pool: { on: vi.fn() },
 }));
 
-vi.mock('../middleware/auth.js', () => ({
+vi.mock('../../middleware/auth.js', () => ({
   authenticateToken: vi.fn((_req, _res, next) => next()),
   requireAuth: vi.fn((_req, _res, next) => next()),
 }));
